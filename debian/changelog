@@ -1,0 +1,25 @@
+click (0.1.3) saucy; urgency=low
+
+  * Rename to click, per Mark Shuttleworth.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Jun 2013 15:57:25 +0100
+
+click-package (0.1.2) saucy; urgency=low
+
+  * Disable dh_sphinxdoc for builds that are not building
+    architecture-independent packages.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Jun 2013 18:57:47 +0100
+
+click-package (0.1.1) saucy; urgency=low
+
+  * clickpackage.tests.test_install: Set NO_PKG_MANGLE when building fake
+    packages, to avoid having Maintainer fields mangled on the buildds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Jun 2013 17:32:00 +0100
+
+click-package (0.1) saucy; urgency=low
+
+  * Initial release.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 24 Jun 2013 14:43:21 +0100
