@@ -38,7 +38,9 @@ from debian.debian_support import Version
 
 from click import osextras
 from click.hooks import run_hooks
+from click.paths import preload_path
 from click.preinst import static_preinst_matches
+from click.user import ClickUser
 from click.versions import spec_version
 
 
@@ -77,12 +79,11 @@ class ClickInstaller:
             return os.environ["CLICK_PACKAGE_PRELOAD"]
         my_path = inspect.getsourcefile(ClickInstaller)
         preload = os.path.join(
-            os.path.dirname(my_path), os.pardir, "preload",
+            os.path.dirname(my_path), os.pardir, "preload", ".libs",
             "libclickpreload.so")
         if os.path.exists(preload):
             return os.path.abspath(preload)
-        # TODO: unhardcode path
-        return "/usr/lib/click/libclickpreload.so"
+        return preload_path
 
     def _has_framework(self, name):
         return os.path.exists(os.path.join(
@@ -197,13 +198,19 @@ class ClickInstaller:
             os.mkdir(os.path.join(admin_dir, "updates"))
             os.mkdir(os.path.join(admin_dir, "triggers"))
 
-    def install(self, path):
+    def install(self, path, user=None):
         package_name, package_version = self.audit(path)
         package_dir = os.path.join(self.root, package_name)
         inst_dir = os.path.join(package_dir, package_version)
         assert os.path.dirname(os.path.dirname(inst_dir)) == self.root
 
         self._check_write_permissions(self.root)
+        root_click = os.path.join(self.root, ".click")
+        if not os.path.exists(root_click):
+            os.makedirs(root_click)
+            if os.getuid() == 0:
+                pw = pwd.getpwnam("clickpkg")
+                os.chown(root_click, pw.pw_uid, pw.pw_gid)
 
         # TODO: sandbox so that this can only write to the unpack directory
         command = [
@@ -212,7 +219,7 @@ class ClickInstaller:
             "--instdir", inst_dir,
             "--admindir", os.path.join(inst_dir, ".click"),
             "--path-exclude", "/.click/*",
-            "--log", os.path.join(self.root, ".click.log"),
+            "--log", os.path.join(root_click, "log"),
             "--no-triggers",
             "--install", path,
         ]
@@ -237,8 +244,7 @@ class ClickInstaller:
         run_hooks(self.root, package_name, old_version, package_version)
 
         new_path = os.path.join(package_dir, "current.new")
-        osextras.unlink_force(new_path)
-        os.symlink(package_version, new_path)
+        osextras.symlink_force(package_version, new_path)
         if os.getuid() == 0:
             # shutil.chown would be more convenient, but it doesn't support
             # follow_symlinks=False in Python 3.3.
@@ -246,5 +252,9 @@ class ClickInstaller:
             pw = pwd.getpwnam("clickpkg")
             os.chown(new_path, pw.pw_uid, pw.pw_gid, follow_symlinks=False)
         os.rename(new_path, current_path)
+
+        if user is not None:
+            registry = ClickUser(self.root, user)
+            registry[package_name] = package_version
 
         # TODO: garbage-collect old directories

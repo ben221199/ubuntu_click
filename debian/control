@@ -3,10 +3,10 @@ Section: admin
 Priority: optional
 Maintainer: Colin Watson <cjwatson@ubuntu.com>
 Standards-Version: 3.9.4
-Build-Depends: debhelper (>= 9~), python3 (>= 3.3), python3-all, python3-setuptools, python3-debian, pep8, pyflakes, python3-sphinx
+Build-Depends: debhelper (>= 9~), dh-autoreconf, python3 (>= 3.2), python3-all, python3-setuptools, python3-debian, python3 (>= 3.3) | python3-mock, pep8, pyflakes, python3-sphinx, libglib2.0-dev (>= 2.28), libjson-glib-dev (>= 0.10), libpackagekit-glib2-dev (>= 0.7.2), libpackagekit-glib2-dev (<< 0.8.1)
 Vcs-Bzr: http://bazaar.launchpad.net/+branch/click
 X-Python-Version: >= 2.7
-X-Python3-Version: >= 3.3
+X-Python3-Version: >= 3.2
 
 Package: click
 Architecture: any
@@ -21,7 +21,7 @@ Description: Click packages
  This package provides common files, including the main click program.
 
 Package: click-dev
-Architecture: all
+Architecture: any
 Depends: ${misc:Depends}, ${python3:Depends}, ${perl:Depends}, python3-click (= ${binary:Version})
 Description: build Click packages
  Click is a simplified packaging format that installs in a separate part of
@@ -31,7 +31,7 @@ Description: build Click packages
 
 Package: python3-click
 Section: python
-Architecture: all
+Architecture: any
 Depends: ${misc:Depends}, ${python3:Depends}, python3-debian
 Conflicts: python3-click-package
 Replaces: python3-click-package
@@ -55,3 +55,13 @@ Description: Click packages (documentation)
  the file system, suitable for third-party applications.
  .
  This package provides documentation for click.
+
+Package: packagekit-plugin-click
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, click
+Description: Click packages (PackageKit plugin)
+ Click is a simplified packaging format that installs in a separate part of
+ the file system, suitable for third-party applications.
+ .
+ This package provides a PackageKit plugin adding support for Click
+ packages.

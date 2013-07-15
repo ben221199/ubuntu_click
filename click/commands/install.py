@@ -20,10 +20,7 @@ from __future__ import print_function
 from optparse import OptionParser
 
 from click.install import ClickInstaller
-
-
-# TODO: make configurable in build system or configuration file or similar?
-default_root = "/opt/click.ubuntu.com"
+from click.paths import default_root
 
 
 def run(argv):
@@ -34,10 +31,12 @@ def run(argv):
     parser.add_option(
         "--force-missing-framework", action="store_true", default=False,
         help="install despite missing system framework")
+    parser.add_option(
+        "--user", metavar="USER", help="register package for USER")
     options, args = parser.parse_args(argv)
     if len(args) < 1:
         parser.error("need package file name")
     package_path = args[0]
     installer = ClickInstaller(options.root, options.force_missing_framework)
-    installer.install(package_path)
+    installer.install(package_path, user=options.user)
     return 0
