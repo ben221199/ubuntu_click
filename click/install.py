@@ -37,14 +37,11 @@ from debian.debfile import DebFile as _DebFile
 from debian.debian_support import Version
 
 from click import osextras
-from click.hooks import run_hooks
+from click.hooks import package_install_hooks
 from click.paths import frameworks_dir, preload_path
 from click.preinst import static_preinst_matches
 from click.user import ClickUser
 from click.versions import spec_version
-
-
-CLICK_VERSION = "0.1"
 
 
 try:
@@ -135,11 +132,23 @@ class ClickInstaller:
         if "/" in package_name:
             raise ValueError(
                 'Invalid character "/" in "name" entry: %s' % package_name)
+        if "_" in package_name:
+            raise ValueError(
+                'Invalid character "/" in "name" entry: %s' % package_name)
 
         try:
             package_version = manifest["version"]
         except KeyError:
             raise ValueError('No "version" entry in manifest')
+        # TODO: perhaps just do full version validation?
+        if "/" in package_version:
+            raise ValueError(
+                'Invalid character "/" in "version" entry: %s' %
+                package_version)
+        if "_" in package_version:
+            raise ValueError(
+                'Invalid character "/" in "version" entry: %s' %
+                package_version)
 
         try:
             framework = manifest["framework"]
@@ -239,7 +248,8 @@ class ClickInstaller:
                 old_version = None
         else:
             old_version = None
-        run_hooks(self.root, package_name, old_version, package_version)
+        package_install_hooks(
+            self.root, package_name, old_version, package_version)
 
         new_path = os.path.join(package_dir, "current.new")
         osextras.symlink_force(package_version, new_path)
