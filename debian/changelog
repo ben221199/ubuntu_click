@@ -1,3 +1,16 @@
+click (0.2.1) saucy; urgency=low
+
+  * Fix "click help list".
+  * Remove HOME from environment when running dpkg, so that it doesn't try
+    to read .dpkg.cfg from it (which may fail when dropping privileges from
+    root and produce a warning message).
+  * Refuse to install .click directories at any level, not just the top.
+  * Add "click pkgdir" command to print the top-level package directory from
+    either a package name or a path within a package; based on work by Ted
+    Gould, for which thanks.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Jul 2013 09:36:19 +0100
+
 click (0.2.0) saucy; urgency=low
 
   * Revise and implement hooks specification.  While many things have
