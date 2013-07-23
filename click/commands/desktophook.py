@@ -118,11 +118,17 @@ def write_desktop_file(target_path, source_path, profile):
                 value = value.strip()
                 if key == "Exec":
                     target.write(
-                        "%s = aa-exec -p %s %s\n" %
+                        "%s = aa-exec -p %s -- %s\n" %
                         (key, quote_for_desktop_exec(profile), value))
                 elif key == "Path":
                     target.write("%s = %s\n" % (key, source_dir))
                     seen_path = True
+                elif key == "Icon":
+                    icon_path = os.path.join(source_dir, value)
+                    if os.path.exists(icon_path):
+                        target.write("%s = %s\n" % (key, icon_path))
+                    else:
+                        target.write(line)
                 else:
                     target.write(line)
         if not seen_path:
