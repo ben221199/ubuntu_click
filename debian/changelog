@@ -1,3 +1,14 @@
+click (0.2.9) saucy; urgency=low
+
+  * Tolerate dangling source symlinks in "click desktophook".
+  * Handle the case where the clickpkg user cannot read the .click file,
+    using some LD_PRELOAD trickery to allow passing it as a file descriptor
+    opened by the privileged process (LP: #1204523).
+  * Remove old links for single-version hooks when installing new versions
+    (LP: #1206115).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Jul 2013 16:56:42 +0100
+
 click (0.2.8) saucy; urgency=low
 
   * Check in advance whether the root is writable by the clickpkg user, not
