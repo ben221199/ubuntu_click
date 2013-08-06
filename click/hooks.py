@@ -81,6 +81,37 @@ class ClickPatternFormatter(Formatter):
             value = ""
         return value, field_name
 
+    def possible_expansion(self, s, format_string, *args, **kwargs):
+        """Check if s is a possible expansion.
+
+        Any (keyword) arguments have the effect of binding some keys to
+        fixed values; unspecified keys may take any value, and will bind
+        greedily to the longest possible string.
+
+        If s is a possible expansion, then this method returns a (possibly
+        empty) dictionary mapping all the unspecified keys to their bound
+        values.  Otherwise, it returns None.
+        """
+        ret = {}
+        regex_pieces = []
+        group_names = []
+        for literal_text, field_name, format_spec, conversion in \
+                self.parse(format_string):
+            if literal_text:
+                regex_pieces.append(re.escape(literal_text))
+            if field_name is not None:
+                if field_name in kwargs:
+                    regex_pieces.append(re.escape(kwargs[field_name]))
+                else:
+                    regex_pieces.append("(.*)")
+                    group_names.append(field_name)
+        match = re.match("^%s$" % "".join(regex_pieces), s)
+        if match is None:
+            return None
+        for group in range(len(group_names)):
+            ret[group_names[group]] = match.group(group + 1)
+        return ret
+
 
 class ClickHook(Deb822):
     _formatter = ClickPatternFormatter()
@@ -98,6 +129,19 @@ class ClickHook(Deb822):
         except IOError:
             raise KeyError("No click hook '%s' installed" % name)
 
+    @classmethod
+    def open_all(cls, hook_name):
+        for entry in osextras.listdir_force(hooks_dir):
+            if not entry.endswith(".hook"):
+                continue
+            try:
+                with open(os.path.join(hooks_dir, entry)) as f:
+                    hook = cls(entry[:-5], f)
+                    if hook.hook_name == hook_name:
+                        yield hook
+            except IOError:
+                pass
+
     @property
     def user_level(self):
         return self.get("user-level", "no") == "yes"
@@ -105,6 +149,10 @@ class ClickHook(Deb822):
     @property
     def single_version(self):
         return self.user_level or self.get("single-version", "no") == "yes"
+
+    @property
+    def hook_name(self):
+        return self.get("hook-name", self.name)
 
     def app_id(self, package, version, app_name):
         # TODO: perhaps this check belongs further up the stack somewhere?
@@ -163,17 +211,30 @@ class ClickHook(Deb822):
         if self.user_level:
             user_db = ClickUser(root, user=user)
             target = os.path.join(user_db.path(package), relative_path)
-            link = self.pattern(package, version, app_name, user=user)
         else:
             target = os.path.join(root, package, version, relative_path)
-            link = self.pattern(package, version, app_name, user=None)
+            assert user is None
+        link = self.pattern(package, version, app_name, user=user)
         link_dir = os.path.dirname(link)
 
         # Remove previous versions if necessary.
+        # TODO: This only works if the app ID only appears, at most, in the
+        # last component of the pattern path.
         if self.single_version:
-            previous_prefix = "%s_%s_" % (package, app_name)
             for previous_entry in osextras.listdir_force(link_dir):
-                if previous_entry.startswith(previous_prefix):
+                previous_exp = self._formatter.possible_expansion(
+                    os.path.join(link_dir, previous_entry),
+                    self["pattern"], user=user, home=self._user_home(user))
+                if previous_exp is None or "id" not in previous_exp:
+                    continue
+                previous_id = previous_exp["id"]
+                try:
+                    previous_package, previous_app_name, _ = previous_id.split(
+                        "_", 2)
+                except ValueError:
+                    continue
+                if (previous_package == package and
+                        previous_app_name == app_name):
                     osextras.unlink_force(
                         os.path.join(link_dir, previous_entry))
 
@@ -217,8 +278,10 @@ class ClickHook(Deb822):
         for package, version, user in self._all_packages(root):
             manifest = _read_manifest_hooks(root, package, version)
             for app_name, hooks in manifest.items():
-                if self.name in hooks:
-                    yield package, version, app_name, user, hooks[self.name]
+                if self.hook_name in hooks:
+                    yield (
+                        package, version, app_name, user,
+                        hooks[self.hook_name])
 
     def install_all(self, root):
         for package, version, app_name, user, relative_path in (
@@ -252,22 +315,17 @@ def package_install_hooks(root, package, old_version, new_version, user=None):
     # manifest but not the new one.
     for app_name, hook_name in sorted(
             _app_hooks(old_manifest) - _app_hooks(new_manifest)):
-        try:
-            hook = ClickHook.open(hook_name)
-        except KeyError:
-            continue
-        if hook.user_level != (user is not None):
-            continue
-        if hook.single_version:
-            hook.remove(package, old_version, app_name, user=user)
+        for hook in ClickHook.open_all(hook_name):
+            if hook.user_level != (user is not None):
+                continue
+            if hook.single_version:
+                hook.remove(package, old_version, app_name, user=user)
 
     for app_name, app_hooks in sorted(new_manifest.items()):
         for hook_name, relative_path in sorted(app_hooks.items()):
-            try:
-                hook = ClickHook.open(hook_name)
-            except KeyError:
-                continue
-            if hook.user_level != (user is not None):
-                continue
-            hook.install(
-                root, package, new_version, app_name, relative_path, user=user)
+            for hook in ClickHook.open_all(hook_name):
+                if hook.user_level != (user is not None):
+                    continue
+                hook.install(
+                    root, package, new_version, app_name, relative_path,
+                    user=user)
