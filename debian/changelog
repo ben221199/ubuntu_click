@@ -1,3 +1,13 @@
+click (0.3.2) saucy; urgency=low
+
+  [ Jamie Strandboge ]
+  * Document maintainer as an optional field.
+
+  [ Matthias Klumpp ]
+  * Support PackageKit 0.8 API.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 27 Aug 2013 21:07:02 +0200
+
 click (0.3.1) saucy; urgency=low
 
   [ Colin Watson ]
