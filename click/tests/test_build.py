@@ -132,7 +132,7 @@ class TestClickBuilder(TestCase, TestClickBuilderBaseMixin):
         for key, value in (
             ("Package", "com.ubuntu.test"),
             ("Version", "1.0"),
-            ("Click-Version", "0.3"),
+            ("Click-Version", "0.4"),
             ("Architecture", "all"),
             ("Maintainer", "Foo Bar <foo@example.org>"),
             ("Description", "test title"),
@@ -146,7 +146,11 @@ class TestClickBuilder(TestCase, TestClickBuilderBaseMixin):
         self.assertEqual(0o644, stat.S_IMODE(os.stat(manifest_path).st_mode))
         with open(os.path.join(scratch, "manifest.json")) as source, \
                 open(manifest_path) as target:
-            self.assertEqual(source.read(), target.read())
+            source_json = json.load(source)
+            target_json = json.load(target)
+            self.assertNotEqual("", target_json["installed-size"])
+            del target_json["installed-size"]
+            self.assertEqual(source_json, target_json)
         with open(os.path.join(control_path, "md5sums")) as md5sums:
             self.assertRegex(
                 md5sums.read(),

@@ -1,3 +1,20 @@
+click (0.4.0) saucy; urgency=low
+
+  [ Colin Watson ]
+  * Add "installed-size" as a mandatory field in the control area's
+    "manifest" file; it should not be present in source manifest files, and
+    is generated automatically by "click build".
+  * Add an optional "icon" manifest key.
+  * Consistently call clickpreload_init from preloaded functions in case
+    they happen to be called before libclickpreload's constructor.
+  * Run dpkg with --force-bad-path so that /sbin and /usr/sbin are not
+    required to be on $PATH; we don't use the tools dpkg gets from there.
+
+  [ Loïc Minier ]
+  * Add fopen64 wrapper (LP: #1218674).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Aug 2013 17:59:34 +0100
+
 click (0.3.4) saucy; urgency=low
 
   * Make "click desktophook" tolerate dangling symlinks in
