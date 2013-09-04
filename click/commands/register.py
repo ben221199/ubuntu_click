@@ -19,24 +19,27 @@ from __future__ import print_function
 
 from optparse import OptionParser
 
-from click.paths import default_root
+from click.database import ClickDB
 from click.user import ClickUser
 
 
 def run(argv):
     parser = OptionParser("%prog register [options] PACKAGE-NAME VERSION")
     parser.add_option(
-        "--root", metavar="PATH", default=default_root,
-        help="set top-level directory to PATH (default: %s)" % default_root)
+        "--root", metavar="PATH", help="look for additional packages in PATH")
     parser.add_option(
         "--user", metavar="USER",
         help="register package for USER (default: current user)")
+    parser.add_option(
+        "--all-users", default=False, action="store_true",
+        help="register package for all users")
     options, args = parser.parse_args(argv)
     if len(args) < 1:
         parser.error("need package name")
     if len(args) < 2:
         parser.error("need version")
+    db = ClickDB(options.root)
     package = args[0]
     version = args[1]
-    registry = ClickUser(options.root, user=options.user)
+    registry = ClickUser(db, user=options.user, all_users=options.all_users)
     registry[package] = version

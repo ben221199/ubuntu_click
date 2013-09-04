@@ -19,24 +19,28 @@ from __future__ import print_function
 
 from optparse import OptionParser
 
+from click.database import ClickDB
 from click.install import ClickInstaller
-from click.paths import default_root
 
 
 def run(argv):
     parser = OptionParser("%prog install [options] PACKAGE-FILE")
     parser.add_option(
-        "--root", metavar="PATH", default=default_root,
-        help="set top-level directory to PATH (default: %s)" % default_root)
+        "--root", metavar="PATH", help="install packages underneath PATH")
     parser.add_option(
         "--force-missing-framework", action="store_true", default=False,
         help="install despite missing system framework")
     parser.add_option(
         "--user", metavar="USER", help="register package for USER")
+    parser.add_option(
+        "--all-users", default=False, action="store_true",
+        help="register package for all users")
     options, args = parser.parse_args(argv)
     if len(args) < 1:
         parser.error("need package file name")
+    db = ClickDB(options.root)
     package_path = args[0]
-    installer = ClickInstaller(options.root, options.force_missing_framework)
-    installer.install(package_path, user=options.user)
+    installer = ClickInstaller(db, options.force_missing_framework)
+    installer.install(
+        package_path, user=options.user, all_users=options.all_users)
     return 0
