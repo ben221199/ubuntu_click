@@ -31,6 +31,7 @@ import os
 from textwrap import dedent
 
 from click import hooks
+from click.database import ClickDB
 from click.hooks import ClickHook, ClickPatternFormatter, package_install_hooks
 from click.user import ClickUser
 from click.tests.helpers import TestCase, mkfile, mock
@@ -77,11 +78,14 @@ class TestClickPatternFormatter(TestCase):
                 "x_abc_1", "x_${id}_${num}", num="2"))
 
 
-class TestClickHookSystemLevel(TestCase):
+class TestClickHookBase(TestCase):
     def setUp(self):
-        super(TestClickHookSystemLevel, self).setUp()
+        super(TestClickHookBase, self).setUp()
         self.use_temp_dir()
+        self.db = ClickDB(self.temp_dir)
 
+
+class TestClickHookSystemLevel(TestClickHookBase):
     def test_open(self):
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
             print(dedent("""\
@@ -91,7 +95,7 @@ class TestClickHookSystemLevel(TestCase):
                 User: root
                 """), file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertCountEqual(["Pattern", "Exec", "User"], hook.keys())
         self.assertEqual("/usr/share/test/${id}.test", hook["pattern"])
         self.assertEqual("test-update", hook["exec"])
@@ -101,7 +105,7 @@ class TestClickHookSystemLevel(TestCase):
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
             print("Pattern: /usr/share/test/${id}.test", file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertEqual("test", hook.hook_name)
 
     def test_hook_name_present(self):
@@ -109,7 +113,7 @@ class TestClickHookSystemLevel(TestCase):
             print("Pattern: /usr/share/test/${id}.test", file=f)
             print("Hook-Name: other", file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertEqual("other", hook.hook_name)
 
     def test_invalid_app_id(self):
@@ -121,7 +125,7 @@ class TestClickHookSystemLevel(TestCase):
                 User: root
                 """), file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertRaises(
             ValueError, hook.app_id, "package", "0.1", "app_name")
         self.assertRaises(
@@ -133,19 +137,20 @@ class TestClickHookSystemLevel(TestCase):
             print("Exec: test-update", file=f)
             print("User: root", file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertEqual("root", hook._run_commands_user(user=None))
         hook._run_commands(user=None)
         mock_check_call.assert_called_once_with(
             "test-update", preexec_fn=mock.ANY, shell=True)
 
-    def test_install(self):
+    def test_install_package(self):
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
             print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
+        os.makedirs(os.path.join(self.temp_dir, "org.example.package", "1.0"))
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
-        hook.install(
-            self.temp_dir, "org.example.package", "1.0", "test-app", "foo/bar")
+            hook = ClickHook.open(self.db, "test")
+        hook.install_package(
+            "org.example.package", "1.0", "test-app", "foo/bar")
         symlink_path = os.path.join(
             self.temp_dir, "org.example.package_test-app_1.0.test")
         target_path = os.path.join(
@@ -159,27 +164,28 @@ class TestClickHookSystemLevel(TestCase):
         symlink_path = os.path.join(
             self.temp_dir, "org.example.package_test-app_1.0.test")
         os.symlink("old-target", symlink_path)
+        os.makedirs(os.path.join(self.temp_dir, "org.example.package", "1.0"))
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
-        hook.install(
-            self.temp_dir, "org.example.package", "1.0", "test-app", "foo/bar")
+            hook = ClickHook.open(self.db, "test")
+        hook.install_package(
+            "org.example.package", "1.0", "test-app", "foo/bar")
         target_path = os.path.join(
             self.temp_dir, "org.example.package", "1.0", "foo", "bar")
         self.assertTrue(os.path.islink(symlink_path))
         self.assertEqual(target_path, os.readlink(symlink_path))
 
-    def test_remove(self):
+    def test_remove_package(self):
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
             print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
         symlink_path = os.path.join(
             self.temp_dir, "org.example.package_test-app_1.0.test")
         os.symlink("old-target", symlink_path)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
-        hook.remove("org.example.package", "1.0", "test-app")
+            hook = ClickHook.open(self.db, "test")
+        hook.remove_package("org.example.package", "1.0", "test-app")
         self.assertFalse(os.path.exists(symlink_path))
 
-    def test_install_all(self):
+    def test_install(self):
         with mkfile(os.path.join(self.temp_dir, "hooks", "new.hook")) as f:
             print("Pattern: %s/${id}.new" % self.temp_dir, file=f)
         with mkfile(os.path.join(
@@ -201,8 +207,8 @@ class TestClickHookSystemLevel(TestCase):
             }))
         os.symlink("2.0", os.path.join(self.temp_dir, "test-2", "current"))
         with temp_hooks_dir(os.path.join(self.temp_dir, "hooks")):
-            hook = ClickHook.open("new")
-        hook.install_all(self.temp_dir)
+            hook = ClickHook.open(self.db, "new")
+        hook.install()
         path_1 = os.path.join(self.temp_dir, "test-1_test1-app_1.0.new")
         self.assertTrue(os.path.lexists(path_1))
         self.assertEqual(
@@ -214,7 +220,7 @@ class TestClickHookSystemLevel(TestCase):
             os.path.join(self.temp_dir, "test-2", "2.0", "target-2"),
             os.readlink(path_2))
 
-    def test_remove_all(self):
+    def test_remove(self):
         with mkfile(os.path.join(self.temp_dir, "hooks", "old.hook")) as f:
             print("Pattern: %s/${id}.old" % self.temp_dir, file=f)
         with mkfile(os.path.join(
@@ -234,17 +240,13 @@ class TestClickHookSystemLevel(TestCase):
         os.symlink(
             os.path.join(self.temp_dir, "test-2", "2.0", "target-2"), path_2)
         with temp_hooks_dir(os.path.join(self.temp_dir, "hooks")):
-            hook = ClickHook.open("old")
-        hook.remove_all(self.temp_dir)
+            hook = ClickHook.open(self.db, "old")
+        hook.remove()
         self.assertFalse(os.path.exists(path_1))
         self.assertFalse(os.path.exists(path_2))
 
 
-class TestClickHookUserLevel(TestCase):
-    def setUp(self):
-        super(TestClickHookUserLevel, self).setUp()
-        self.use_temp_dir()
-
+class TestClickHookUserLevel(TestClickHookBase):
     def test_open(self):
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
             print(dedent("""\
@@ -254,7 +256,7 @@ class TestClickHookUserLevel(TestCase):
                 Exec: test-update
                 """), file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertCountEqual(["User-Level", "Pattern", "Exec"], hook.keys())
         self.assertEqual(
             "${home}/.local/share/test/${id}.test", hook["pattern"])
@@ -266,7 +268,7 @@ class TestClickHookUserLevel(TestCase):
             print("User-Level: yes", file=f)
             print("Pattern: ${home}/.local/share/test/${id}.test", file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertEqual("test", hook.hook_name)
 
     def test_hook_name_present(self):
@@ -275,7 +277,7 @@ class TestClickHookUserLevel(TestCase):
             print("Pattern: ${home}/.local/share/test/${id}.test", file=f)
             print("Hook-Name: other", file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertEqual("other", hook.hook_name)
 
     def test_invalid_app_id(self):
@@ -287,7 +289,7 @@ class TestClickHookUserLevel(TestCase):
                 Exec: test-update
                 """), file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertRaises(
             ValueError, hook.app_id, "package", "0.1", "app_name")
         self.assertRaises(
@@ -299,7 +301,7 @@ class TestClickHookUserLevel(TestCase):
             print("User-Level: yes", file=f)
             print("Exec: test-update", file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
+            hook = ClickHook.open(self.db, "test")
         self.assertEqual(
             "test-user", hook._run_commands_user(user="test-user"))
         hook._run_commands(user="test-user")
@@ -307,15 +309,19 @@ class TestClickHookUserLevel(TestCase):
             "test-update", preexec_fn=mock.ANY, shell=True)
 
     @mock.patch("click.hooks.ClickHook._user_home")
-    def test_install(self, mock_user_home):
+    def test_install_package(self, mock_user_home):
         mock_user_home.return_value = "/home/test-user"
-        with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
-            print("User-Level: yes", file=f)
-            print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
-        hook.install(
-            self.temp_dir, "org.example.package", "1.0", "test-app", "foo/bar",
+            os.makedirs(os.path.join(
+                self.temp_dir, "org.example.package", "1.0"))
+            user_db = ClickUser(self.db, user="test-user")
+            user_db["org.example.package"] = "1.0"
+            with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+                print("User-Level: yes", file=f)
+                print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
+            hook = ClickHook.open(self.db, "test")
+        hook.install_package(
+            "org.example.package", "1.0", "test-app", "foo/bar",
             user="test-user")
         symlink_path = os.path.join(
             self.temp_dir, "org.example.package_test-app_1.0.test")
@@ -326,18 +332,24 @@ class TestClickHookUserLevel(TestCase):
         self.assertEqual(target_path, os.readlink(symlink_path))
 
     @mock.patch("click.hooks.ClickHook._user_home")
-    def test_install_removes_previous(self, mock_user_home):
+    def test_install_package_removes_previous(self, mock_user_home):
         mock_user_home.return_value = "/home/test-user"
-        with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
-            print("User-Level: yes", file=f)
-            print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
-        hook.install(
-            self.temp_dir, "org.example.package", "1.0", "test-app", "foo/bar",
+            os.makedirs(os.path.join(
+                self.temp_dir, "org.example.package", "1.0"))
+            os.makedirs(os.path.join(
+                self.temp_dir, "org.example.package", "1.1"))
+            user_db = ClickUser(self.db, user="test-user")
+            user_db["org.example.package"] = "1.0"
+            with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+                print("User-Level: yes", file=f)
+                print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
+            hook = ClickHook.open(self.db, "test")
+        hook.install_package(
+            "org.example.package", "1.0", "test-app", "foo/bar",
             user="test-user")
-        hook.install(
-            self.temp_dir, "org.example.package", "1.1", "test-app", "foo/bar",
+        hook.install_package(
+            "org.example.package", "1.1", "test-app", "foo/bar",
             user="test-user")
         old_symlink_path = os.path.join(
             self.temp_dir, "org.example.package_test-app_1.0.test")
@@ -353,16 +365,20 @@ class TestClickHookUserLevel(TestCase):
     @mock.patch("click.hooks.ClickHook._user_home")
     def test_upgrade(self, mock_user_home):
         mock_user_home.return_value = "/home/test-user"
-        with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
-            print("User-Level: yes", file=f)
-            print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
         symlink_path = os.path.join(
             self.temp_dir, "org.example.package_test-app_1.0.test")
         os.symlink("old-target", symlink_path)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
-        hook.install(
-            self.temp_dir, "org.example.package", "1.0", "test-app", "foo/bar",
+            os.makedirs(os.path.join(
+                self.temp_dir, "org.example.package", "1.0"))
+            user_db = ClickUser(self.db, user="test-user")
+            user_db["org.example.package"] = "1.0"
+            with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+                print("User-Level: yes", file=f)
+                print("Pattern: %s/${id}.test" % self.temp_dir, file=f)
+            hook = ClickHook.open(self.db, "test")
+        hook.install_package(
+            "org.example.package", "1.0", "test-app", "foo/bar",
             user="test-user")
         target_path = os.path.join(
             self.temp_dir, ".click", "users", "test-user",
@@ -371,7 +387,7 @@ class TestClickHookUserLevel(TestCase):
         self.assertEqual(target_path, os.readlink(symlink_path))
 
     @mock.patch("click.hooks.ClickHook._user_home")
-    def test_remove(self, mock_user_home):
+    def test_remove_package(self, mock_user_home):
         mock_user_home.return_value = "/home/test-user"
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
             print("User-Level: yes", file=f)
@@ -380,17 +396,18 @@ class TestClickHookUserLevel(TestCase):
             self.temp_dir, "org.example.package_test-app_1.0.test")
         os.symlink("old-target", symlink_path)
         with temp_hooks_dir(self.temp_dir):
-            hook = ClickHook.open("test")
-        hook.remove("org.example.package", "1.0", "test-app", user="test-user")
+            hook = ClickHook.open(self.db, "test")
+        hook.remove_package(
+            "org.example.package", "1.0", "test-app", user="test-user")
         self.assertFalse(os.path.exists(symlink_path))
 
     @mock.patch("click.hooks.ClickHook._user_home")
-    def test_install_all(self, mock_user_home):
+    def test_install(self, mock_user_home):
         mock_user_home.return_value = "/home/test-user"
         with mkfile(os.path.join(self.temp_dir, "hooks", "new.hook")) as f:
             print("User-Level: yes", file=f)
             print("Pattern: %s/${id}.new" % self.temp_dir, file=f)
-        user_db = ClickUser(self.temp_dir, user="test-user")
+        user_db = ClickUser(self.db, user="test-user")
         with mkfile(os.path.join(
                 self.temp_dir, "test-1", "1.0", ".click", "info",
                 "test-1.manifest")) as f:
@@ -410,8 +427,8 @@ class TestClickHookUserLevel(TestCase):
             }))
         user_db["test-2"] = "2.0"
         with temp_hooks_dir(os.path.join(self.temp_dir, "hooks")):
-            hook = ClickHook.open("new")
-        hook.install_all(self.temp_dir)
+            hook = ClickHook.open(self.db, "new")
+        hook.install()
         path_1 = os.path.join(self.temp_dir, "test-1_test1-app_1.0.new")
         self.assertTrue(os.path.lexists(path_1))
         self.assertEqual(
@@ -427,13 +444,33 @@ class TestClickHookUserLevel(TestCase):
                 "target-2"),
             os.readlink(path_2))
 
+        os.unlink(path_1)
+        os.unlink(path_2)
+        hook.install(user="another-user")
+        self.assertFalse(os.path.lexists(path_1))
+        self.assertFalse(os.path.lexists(path_2))
+
+        hook.install(user="test-user")
+        self.assertTrue(os.path.lexists(path_1))
+        self.assertEqual(
+            os.path.join(
+                self.temp_dir, ".click", "users", "test-user", "test-1",
+                "target-1"),
+            os.readlink(path_1))
+        self.assertTrue(os.path.lexists(path_2))
+        self.assertEqual(
+            os.path.join(
+                self.temp_dir, ".click", "users", "test-user", "test-2",
+                "target-2"),
+            os.readlink(path_2))
+
     @mock.patch("click.hooks.ClickHook._user_home")
-    def test_remove_all(self, mock_user_home):
+    def test_remove(self, mock_user_home):
         mock_user_home.return_value = "/home/test-user"
         with mkfile(os.path.join(self.temp_dir, "hooks", "old.hook")) as f:
             print("User-Level: yes", file=f)
             print("Pattern: %s/${id}.old" % self.temp_dir, file=f)
-        user_db = ClickUser(self.temp_dir, user="test-user")
+        user_db = ClickUser(self.db, user="test-user")
         with mkfile(os.path.join(
                 self.temp_dir, "test-1", "1.0", ".click", "info",
                 "test-1.manifest")) as f:
@@ -450,17 +487,13 @@ class TestClickHookUserLevel(TestCase):
         path_2 = os.path.join(self.temp_dir, "test-2_test2-app_2.0.old")
         os.symlink(os.path.join(user_db.path("test-2"), "target-2"), path_2)
         with temp_hooks_dir(os.path.join(self.temp_dir, "hooks")):
-            hook = ClickHook.open("old")
-        hook.remove_all(self.temp_dir)
+            hook = ClickHook.open(self.db, "old")
+        hook.remove()
         self.assertFalse(os.path.exists(path_1))
         self.assertFalse(os.path.exists(path_2))
 
 
-class TestPackageInstallHooks(TestCase):
-    def setUp(self):
-        super(TestPackageInstallHooks, self).setUp()
-        self.use_temp_dir()
-
+class TestPackageInstallHooks(TestClickHookBase):
     def assert_has_calls_sparse(self, mock_obj, calls):
         """Like mock.assert_has_calls, but allows other calls in between."""
         expected_calls = list(calls)
@@ -506,7 +539,7 @@ class TestPackageInstallHooks(TestCase):
                 package_dir, "1.1", ".click", "info", "test.manifest")) as f:
             f.write(json.dumps({}))
         with temp_hooks_dir(hooks_dir):
-            package_install_hooks(self.temp_dir, "test", "1.0", "1.1")
+            package_install_hooks(self.db, "test", "1.0", "1.1")
         self.assertFalse(os.path.lexists(unity_path))
         self.assertFalse(os.path.lexists(yelp_docs_path))
         self.assertFalse(os.path.lexists(yelp_other_path))
@@ -532,7 +565,7 @@ class TestPackageInstallHooks(TestCase):
             f.write(json.dumps(
                 {"hooks": {"app": {"a": "foo.a", "b": "foo.b"}}}))
         with temp_hooks_dir(hooks_dir):
-            package_install_hooks(self.temp_dir, "test", "1.0", "1.1")
+            package_install_hooks(self.db, "test", "1.0", "1.1")
         self.assertTrue(os.path.lexists(
             os.path.join(self.temp_dir, "a", "test_app_1.1.a")))
         self.assertTrue(os.path.lexists(
@@ -580,7 +613,7 @@ class TestPackageInstallHooks(TestCase):
                     "app": {"a": "foo.a", "b": "foo.b", "c": "foo.c"}}
                 }))
         with temp_hooks_dir(hooks_dir):
-            package_install_hooks(self.temp_dir, "test", "1.0", "1.1")
+            package_install_hooks(self.db, "test", "1.0", "1.1")
         self.assertFalse(os.path.lexists(a_path))
         self.assertTrue(os.path.lexists(b_irrelevant_path))
         self.assertFalse(os.path.lexists(b_1_path))

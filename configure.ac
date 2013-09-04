@@ -49,10 +49,14 @@ AC_SUBST([pkpluginlibdir], ["$click_cv_pkpluginlibdir"])
 AC_CONFIG_FILES([
 	Makefile
 	click/Makefile
+	conf/Makefile
+	conf/databases/Makefile
+	conf/databases/99_default.conf
 	debhelper/Makefile
 	pk-plugin/Makefile
 	po/Makefile.in
 	preload/Makefile
+	upstart/Makefile
 	])
 AC_CONFIG_FILES([setup.py], [chmod +x setup.py])
 AC_OUTPUT
