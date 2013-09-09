@@ -21,6 +21,7 @@ import io
 import json
 from optparse import OptionParser
 import os
+import sys
 
 from click.database import ClickDB
 from click.user import ClickUser
@@ -29,12 +30,15 @@ from click.user import ClickUser
 def list_packages(options):
     db = ClickDB(options.root)
     if options.all:
-        for package, version, path in db.packages(all_versions=True):
-            yield package, version, path
+        for package, version, path, writeable in \
+                db.packages(all_versions=True):
+            yield package, version, path, writeable
     else:
         registry = ClickUser(db, user=options.user)
         for package, version in sorted(registry.items()):
-            yield package, version, registry.path(package)
+            yield (
+                package, version, registry.path(package),
+                registry.writeable(package))
 
 
 def run(argv):
@@ -49,21 +53,28 @@ def run(argv):
         help="list packages registered by USER (if you have permission)")
     parser.add_option(
         "--manifest", default=False, action="store_true",
-        help="print JSON array of manifests of all installed packages")
+        help="format output as a JSON array of manifests")
     options, _ = parser.parse_args(argv)
     json_output = []
-    for package, version, path in list_packages(options):
+    for package, version, path, writeable in list_packages(options):
         if options.manifest:
             try:
                 manifest_path = os.path.join(
                     path, ".click", "info", "%s.manifest" % package)
                 with io.open(manifest_path, encoding="UTF-8") as manifest:
-                    json_output.append(json.load(manifest))
+                    manifest_json = json.load(manifest)
+                    keys = list(manifest_json)
+                    for key in keys:
+                        if key.startswith("_"):
+                            del manifest_json[key]
+                    manifest_json["_directory"] = path
+                    manifest_json["_removable"] = 1 if writeable else 0
+                    json_output.append(manifest_json)
             except Exception:
                 pass
         else:
             print("%s\t%s" % (package, version))
     if options.manifest:
-        print(json.dumps(
-            json_output, ensure_ascii=False, sort_keys=True, indent=4,
-            separators=(",", ": ")))
+        json.dump(
+            json_output, sys.stdout, ensure_ascii=False, sort_keys=True,
+            indent=4, separators=(",", ": "))

@@ -274,10 +274,12 @@ class ClickHook(Deb822):
                     yield package, version, user
             else:
                 for user_name, user_db in ClickUsers(self.db).items():
+                    if user_name.startswith("@"):
+                        continue
                     for package, version in user_db.items():
                         yield package, version, user_name
         else:
-            for package, version, _ in self.db.packages():
+            for package, version, _, _ in self.db.packages():
                 yield package, version, None
 
     def _relevant_apps(self, user=None):
@@ -311,7 +313,7 @@ def _app_hooks(hooks):
 
 
 def package_install_hooks(db, package, old_version, new_version, user=None):
-    """Run hooks following installation of a Click package.
+    """Run hooks following installation or upgrade of a Click package.
 
     If user is None, only run system-level hooks.  If user is not None, only
     run user-level hooks for that user.
@@ -336,6 +338,24 @@ def package_install_hooks(db, package, old_version, new_version, user=None):
                     continue
                 hook.install_package(
                     package, new_version, app_name, relative_path, user=user)
+
+
+def package_remove_hooks(db, package, old_version, user=None):
+    """Run hooks following removal of a Click package.
+
+    If user is None, only run system-level hooks.  If user is not None, only
+    run user-level hooks for that user.
+    """
+    old_manifest = _read_manifest_hooks(db, package, old_version)
+
+    for app_name, app_hooks in sorted(old_manifest.items()):
+        for hook_name in sorted(app_hooks):
+            for hook in ClickHook.open_all(db, hook_name):
+                if hook.user_level != (user is not None):
+                    continue
+                if hook.single_version:
+                    hook.remove_package(
+                        package, old_version, app_name, user=user)
 
 
 def run_user_hooks(db, user=None):

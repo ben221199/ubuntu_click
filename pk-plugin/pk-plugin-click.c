@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <errno.h>
 #include <pwd.h>
 #include <string.h>
@@ -32,10 +34,6 @@
 #define I_KNOW_THE_PACKAGEKIT_PLUGIN_API_IS_SUBJECT_TO_CHANGE
 #include <plugin/packagekit-plugin.h>
 
-#if PK_CHECK_VERSION(0,8,1) && !PK_CHECK_VERSION(0,8,10)
-#error "PackageKit >= 0.8.1 and < 0.8.10 not supported"
-#endif
-
 
 struct PkPluginPrivate {
 	guint			 dummy;
@@ -45,12 +43,12 @@ struct PkPluginPrivate {
 	"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 /**
- * click_is_click_package:
+ * click_is_click_file:
  *
- * Check if a given file is a Click package.
+ * Check if a given file is a Click package file.
  */
 static gboolean
-click_is_click_package (const gchar *filename)
+click_is_click_file (const gchar *filename)
 {
 	gboolean ret = FALSE;
 	GFile *file;
@@ -74,7 +72,7 @@ out:
 }
 
 static gchar **
-click_filter_click_packages (PkTransaction *transaction, gchar **files)
+click_filter_click_files (PkTransaction *transaction, gchar **files)
 {
 	gchar **native_files = NULL;
 	gchar **click_files = NULL;
@@ -87,7 +85,7 @@ click_filter_click_packages (PkTransaction *transaction, gchar **files)
 	 * early.
 	 */
 	for (i = 0; files[i]; ++i) {
-		ret = click_is_click_package (files[i]);
+		ret = click_is_click_file (files[i]);
 		if (ret)
 			break;
 	}
@@ -99,7 +97,7 @@ click_filter_click_packages (PkTransaction *transaction, gchar **files)
 	click = g_ptr_array_new_with_free_func (g_free);
 
 	for (i = 0; files[i]; ++i) {
-		ret = click_is_click_package (files[i]);
+		ret = click_is_click_file (files[i]);
 		g_ptr_array_add (ret ? click : native, g_strdup (files[i]));
 	}
 
@@ -114,6 +112,71 @@ out:
 	if (click)
 		g_ptr_array_unref (click);
 	return click_files;
+}
+
+/**
+ * click_is_click_package:
+ *
+ * Check if a given PackageKit package-id is a Click package.
+ */
+static gboolean
+click_is_click_package (const gchar *package_id)
+{
+	gchar **parts = NULL;
+	gboolean ret = FALSE;
+
+	parts = pk_package_id_split (package_id);
+	if (!parts)
+		goto out;
+	ret = g_strcmp0 (parts[PK_PACKAGE_ID_DATA], "local:click") == 0;
+
+out:
+	g_strfreev (parts);
+	return ret;
+}
+
+static gchar **
+click_filter_click_packages (PkTransaction *transaction, gchar **package_ids)
+{
+	gchar **native_package_ids = NULL;
+	gchar **click_package_ids = NULL;
+	GPtrArray *native = NULL;
+	GPtrArray *click = NULL;
+	gint i;
+	gboolean ret = FALSE;
+
+	/* Are there any Click packages at all?  If not, we can bail out
+	 * early.
+	 */
+	for (i = 0; package_ids[i]; ++i) {
+		ret = click_is_click_package (package_ids[i]);
+		if (ret)
+			break;
+	}
+	if (!ret)
+		goto out;
+
+	/* Find and filter Click packages. */
+	native = g_ptr_array_new_with_free_func (g_free);
+	click = g_ptr_array_new_with_free_func (g_free);
+
+	for (i = 0; package_ids[i]; ++i) {
+		ret = click_is_click_package (package_ids[i]);
+		g_ptr_array_add (ret ? click : native,
+				 g_strdup (package_ids[i]));
+	}
+
+	native_package_ids = pk_ptr_array_to_strv (native);
+	click_package_ids = pk_ptr_array_to_strv (click);
+	pk_transaction_set_package_ids (transaction, native_package_ids);
+
+out:
+	g_strfreev (native_package_ids);
+	if (native)
+		g_ptr_array_unref (native);
+	if (click)
+		g_ptr_array_unref (click);
+	return click_package_ids;
 }
 
 /**
@@ -188,16 +251,16 @@ click_get_envp (void)
 }
 
 static JsonParser *
-click_get_manifest (const gchar *filename)
+click_get_manifest (PkPlugin *plugin, const gchar *filename)
 {
 	gboolean ret;
 	gchar **argv = NULL;
 	gint i;
 	gchar **envp = NULL;
 	gchar *manifest_text = NULL;
+	gchar *click_stderr = NULL;
+	gint click_status;
 	JsonParser *parser = NULL;
-
-	/* TODO: debug messages on failure */
 
 	argv = g_malloc0_n (4, sizeof (*argv));
 	i = 0;
@@ -205,11 +268,23 @@ click_get_manifest (const gchar *filename)
 	argv[i++] = g_strdup ("info");
 	argv[i++] = g_strdup (filename);
 	envp = click_get_envp ();
-	ret = g_spawn_sync (NULL, argv, envp,
-			    G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-			    NULL, NULL, &manifest_text, NULL, NULL, NULL);
+	ret = g_spawn_sync (NULL, argv, envp, G_SPAWN_SEARCH_PATH,
+			    NULL, NULL, &manifest_text, &click_stderr,
+			    &click_status, NULL);
 	if (!ret)
 		goto out;
+	if (!g_spawn_check_exit_status (click_status, NULL)) {
+		if (pk_backend_job_get_is_error_set (plugin->job)) {
+			/* PK already has an error; just log this. */
+			g_warning ("\"click info %s\" failed.", filename);
+			g_warning ("Stderr: %s", click_stderr);
+		} else
+			pk_backend_job_error_code (
+				plugin->job, PK_ERROR_ENUM_INTERNAL_ERROR,
+				"\"click info %s\" failed.\n%s",
+				filename, click_stderr);
+		goto out;
+	}
 
 	parser = json_parser_new ();
 	if (!parser)
@@ -220,6 +295,7 @@ out:
 	g_strfreev (argv);
 	g_strfreev (envp);
 	g_free (manifest_text);
+	g_free (click_stderr);
 
 	return parser;
 }
@@ -237,7 +313,7 @@ click_get_field (JsonParser *parser, const gchar *field)
 }
 
 static JsonParser *
-click_get_list (PkTransaction *transaction)
+click_get_list (PkPlugin *plugin, PkTransaction *transaction)
 {
 	gboolean ret;
 	gchar **argv = NULL;
@@ -245,9 +321,9 @@ click_get_list (PkTransaction *transaction)
 	gchar *username = NULL;
 	gchar **envp = NULL;
 	gchar *list_text = NULL;
+	gchar *click_stderr = NULL;
+	gint click_status;
 	JsonParser *parser = NULL;
-
-	/* TODO: debug messages on failure */
 
 	argv = g_malloc0_n (5, sizeof (*argv));
 	i = 0;
@@ -259,11 +335,22 @@ click_get_list (PkTransaction *transaction)
 	if (username)
 		argv[i++] = g_strdup_printf ("--user=%s", username);
 	envp = click_get_envp ();
-	ret = g_spawn_sync (NULL, argv, envp,
-			    G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-			    NULL, NULL, &list_text, NULL, NULL, NULL);
+	ret = g_spawn_sync (NULL, argv, envp, G_SPAWN_SEARCH_PATH,
+			    NULL, NULL, &list_text, &click_stderr,
+			    &click_status, NULL);
 	if (!ret)
 		goto out;
+	if (!g_spawn_check_exit_status (click_status, NULL)) {
+		if (pk_backend_job_get_is_error_set (plugin->job)) {
+			/* PK already has an error; just log this. */
+			g_warning ("\"click list\" failed.");
+			g_warning ("Stderr: %s", click_stderr);
+		} else
+			pk_backend_job_error_code (
+				plugin->job, PK_ERROR_ENUM_INTERNAL_ERROR,
+				"\"click list\" failed.\n%s", click_stderr);
+		goto out;
+	}
 
 	parser = json_parser_new ();
 	if (!parser)
@@ -275,12 +362,13 @@ out:
 	g_free (username);
 	g_strfreev (envp);
 	g_free (list_text);
+	g_free (click_stderr);
 
 	return parser;
 }
 
 static gchar *
-click_build_pkid (const gchar *filename, const gchar *data)
+click_build_pkid (PkPlugin *plugin, const gchar *filename, const gchar *data)
 {
 	JsonParser *parser = NULL;
 	gchar *name = NULL;
@@ -288,7 +376,7 @@ click_build_pkid (const gchar *filename, const gchar *data)
 	gchar *architecture = NULL;
 	gchar *pkid = NULL;
 
-	parser = click_get_manifest (filename);
+	parser = click_get_manifest (plugin, filename);
 	if (!parser)
 		goto out;
 	name = click_get_field (parser, "name");
@@ -305,6 +393,31 @@ out:
 }
 
 static gboolean
+click_split_pkid (const gchar *package_id, gchar **name, gchar **version,
+		  gchar **architecture)
+{
+	gchar **parts = NULL;
+	gboolean ret = FALSE;
+
+	parts = pk_package_id_split (package_id);
+	if (!parts)
+		goto out;
+	if (g_strcmp0 (parts[PK_PACKAGE_ID_DATA], "local:click") != 0)
+		goto out;
+	if (name)
+		*name = g_strdup (parts[PK_PACKAGE_ID_NAME]);
+	if (version)
+		*version = g_strdup (parts[PK_PACKAGE_ID_VERSION]);
+	if (architecture)
+		*architecture = g_strdup (parts[PK_PACKAGE_ID_ARCH]);
+	ret = TRUE;
+
+out:
+	g_strfreev (parts);
+	return ret;
+}
+
+static gboolean
 click_install_file (PkPlugin *plugin, PkTransaction *transaction,
 		    const gchar *filename)
 {
@@ -313,6 +426,8 @@ click_install_file (PkPlugin *plugin, PkTransaction *transaction,
 	gint i;
 	gchar *username = NULL;
 	gchar **envp = NULL;
+	gchar *click_stderr = NULL;
+	gint click_status;
 	gchar *pkid = NULL;
 
 	argv = g_malloc0_n (6, sizeof (*argv));
@@ -328,31 +443,38 @@ click_install_file (PkPlugin *plugin, PkTransaction *transaction,
 	argv[i++] = g_strdup (filename);
 	envp = click_get_envp ();
 	ret = g_spawn_sync (NULL, argv, envp,
-			    G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL |
-			    G_SPAWN_STDERR_TO_DEV_NULL,
-			    NULL, NULL, NULL, NULL, NULL, NULL);
+			    G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL,
+			    NULL, NULL, NULL, &click_stderr, &click_status,
+			    NULL);
 	if (!ret)
 		goto out;
+	if (!g_spawn_check_exit_status (click_status, NULL)) {
+		ret = FALSE;
+		if (pk_backend_job_get_is_error_set (plugin->job)) {
+			/* PK already has an error; just log this. */
+			g_warning ("%s failed to install", filename);
+			g_warning ("Stderr: %s", click_stderr);
+		} else
+			pk_backend_job_error_code (
+				plugin->job,
+				PK_ERROR_ENUM_PACKAGE_FAILED_TO_INSTALL,
+				"%s failed to install.\n%s",
+				filename, click_stderr);
+		goto out;
+	}
 
-	pkid = click_build_pkid (filename, "installed");
-#if PK_CHECK_VERSION(0,8,10)
+	pkid = click_build_pkid (plugin, filename, "local:click");
 	if (!pk_backend_job_get_is_error_set (plugin->job)) {
 		pk_backend_job_package (plugin->job, PK_INFO_ENUM_INSTALLED,
 					pkid, "summary goes here");
 		ret = TRUE;
 	}
-#else
-	if (!pk_backend_get_is_error_set (plugin->backend)) {
-		pk_backend_package (plugin->backend, PK_INFO_ENUM_INSTALLED,
-				    pkid, "summary goes here");
-		ret = TRUE;
-	}
-#endif
 
 out:
 	g_strfreev (argv);
 	g_free (username);
 	g_strfreev (envp);
+	g_free (click_stderr);
 	g_free (pkid);
 
 	return ret;
@@ -406,14 +528,9 @@ click_get_packages_one (JsonArray *array, guint index, JsonNode *element_node,
 		title = "";
 
 	pkid = pk_package_id_build (name, version, architecture,
-				    "installed:click");
-#if PK_CHECK_VERSION(0,8,10)
+				    "local:click");
 	pk_backend_job_package (plugin->job, PK_INFO_ENUM_INSTALLED, pkid,
 				title);
-#else
-	pk_backend_package (plugin->backend, PK_INFO_ENUM_INSTALLED, pkid,
-			    title);
-#endif
 }
 
 static void
@@ -423,7 +540,7 @@ click_get_packages (PkPlugin *plugin, PkTransaction *transaction)
 	JsonNode *node = NULL;
 	JsonArray *array = NULL;
 
-	parser = click_get_list (transaction);
+	parser = click_get_list (plugin, transaction);
 	if (!parser)
 		goto out;
 	node = json_parser_get_root (parser);
@@ -436,24 +553,193 @@ out:
 	g_clear_object (&parser);
 }
 
+static gboolean
+click_remove_package (PkPlugin *plugin, PkTransaction *transaction,
+		      const gchar *package_id)
+{
+	gboolean ret = FALSE;
+	gchar **argv = NULL;
+	gint i;
+	gchar *username = NULL;
+	gchar *name = NULL;
+	gchar *version = NULL;
+	gchar **envp = NULL;
+	gchar *click_stderr = NULL;
+	gint click_status;
+
+	argv = g_malloc0_n (6, sizeof (*argv));
+	i = 0;
+	argv[i++] = g_strdup ("click");
+	argv[i++] = g_strdup ("unregister");
+	username = click_get_username_for_uid
+		(pk_transaction_get_uid (transaction));
+	if (!username) {
+		g_error ("Click: cannot remove packages without a username");
+		goto out;
+	}
+	argv[i++] = g_strdup_printf ("--user=%s", username);
+	if (!click_split_pkid (package_id, &name, &version, NULL)) {
+		g_error ("Click: cannot parse package ID '%s'", package_id);
+		goto out;
+	}
+	argv[i++] = g_strdup (name);
+	argv[i++] = g_strdup (version);
+	envp = click_get_envp ();
+	ret = g_spawn_sync (NULL, argv, envp,
+			    G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL,
+			    NULL, NULL, NULL, &click_stderr, &click_status,
+			    NULL);
+	if (!ret)
+		goto out;
+	if (!g_spawn_check_exit_status (click_status, NULL)) {
+		ret = FALSE;
+		if (pk_backend_job_get_is_error_set (plugin->job)) {
+			/* PK already has an error; just log this. */
+			g_warning ("%s failed to remove", package_id);
+			g_warning ("Stderr: %s", click_stderr);
+		} else
+			pk_backend_job_error_code (
+				plugin->job,
+				PK_ERROR_ENUM_PACKAGE_FAILED_TO_REMOVE,
+				"%s failed to remove.\n%s",
+				package_id, click_stderr);
+		goto out;
+	}
+
+out:
+	g_strfreev (argv);
+	g_free (username);
+	g_free (name);
+	g_free (version);
+	g_strfreev (envp);
+	g_free (click_stderr);
+
+	return ret;
+}
+
+static void
+click_remove_packages (PkPlugin *plugin, PkTransaction *transaction,
+		       gchar **package_ids)
+{
+	gboolean ret = FALSE;
+	gint i;
+
+	for (i = 0; package_ids[i]; ++i) {
+		g_debug ("Click: removing %s", package_ids[i]);
+		ret = click_remove_package (plugin, transaction,
+					    package_ids[i]);
+		if (!ret)
+			break;
+	}
+}
+
+struct click_search_data {
+	PkPlugin *plugin;
+	gchar **values;
+	gboolean search_details;
+};
+
+static void
+click_search_emit (PkPlugin *plugin, const gchar *name, const gchar *version,
+		   const gchar *architecture, const gchar *title)
+{
+	gchar *package_id;
+
+	package_id = pk_package_id_build (name, version, architecture,
+					  "local:click");
+	g_debug ("Found package: %s", package_id);
+	pk_backend_job_package (plugin->job, PK_INFO_ENUM_INSTALLED,
+				package_id, title);
+
+	g_free (package_id);
+}
+
+static void
+click_search_one (JsonArray *array, guint index, JsonNode *element_node,
+		  gpointer vdata)
+{
+	struct click_search_data *data;
+	JsonObject *manifest;
+	const gchar *name;
+	const gchar *version;
+	const gchar *architecture = NULL;
+	const gchar *title = NULL;
+	const gchar *description = NULL;
+	gchar **value;
+
+	data = (struct click_search_data *) vdata;
+	manifest = json_node_get_object (element_node);
+	if (!manifest)
+		return;
+	name = json_object_get_string_member (manifest, "name");
+	if (!name)
+		return;
+	version = json_object_get_string_member (manifest, "version");
+	if (!version)
+		return;
+	if (json_object_has_member (manifest, "architecture"))
+		architecture = json_object_get_string_member (manifest,
+							      "architecture");
+	if (!architecture)
+		architecture = "";
+	if (data->search_details && json_object_has_member (manifest, "title"))
+		title = json_object_get_string_member (manifest, "title");
+	if (!title)
+		title = "";
+	if (data->search_details &&
+	    json_object_has_member (manifest, "description"))
+		description = json_object_get_string_member (manifest,
+							     "description");
+	if (!description)
+		description = "";
+
+	for (value = data->values; *value; ++value) {
+		if (strcasestr (name, *value)) {
+			click_search_emit (data->plugin, name, version,
+					   architecture, title);
+			break;
+		}
+		if (data->search_details &&
+		    (strcasestr (title, *value) ||
+		     strcasestr (description, *value))) {
+			click_search_emit (data->plugin, name, version,
+					   architecture, title);
+			break;
+		}
+	}
+}
+
+static void
+click_search (PkPlugin *plugin, PkTransaction *transaction, gchar **values,
+	      gboolean search_details)
+{
+	JsonParser *parser = NULL;
+	JsonNode *node = NULL;
+	JsonArray *array = NULL;
+	struct click_search_data data;
+
+	parser = click_get_list (plugin, transaction);
+	if (!parser)
+		goto out;
+	node = json_parser_get_root (parser);
+	array = json_node_get_array (node);
+	if (!array)
+		goto out;
+	data.plugin = plugin;
+	data.values = values;
+	data.search_details = search_details;
+	json_array_foreach_element (array, click_search_one, &data);
+
+out:
+	g_clear_object (&parser);
+}
+
 static void
 click_skip_native_backend (PkPlugin *plugin)
 {
-#if PK_CHECK_VERSION(0,8,10)
 	if (!pk_backend_job_get_is_error_set (plugin->job))
 		pk_backend_job_set_exit_code (plugin->job,
 					      PK_EXIT_ENUM_SKIP_TRANSACTION);
-#else
-	if (!pk_backend_get_is_error_set (plugin->backend)) {
-		pk_backend_set_exit_code (plugin->backend,
-					  PK_EXIT_ENUM_SKIP_TRANSACTION);
-		/* Work around breakage in PackageKit 0.7; if we omit this
-		 * then transaction signals are not all disconnected and
-		 * later transactions may crash.
-		 */
-		pk_backend_finished (plugin->backend);
-	}
-#endif
 }
 
 /**
@@ -475,12 +761,9 @@ pk_plugin_initialize (PkPlugin *plugin)
 	plugin->priv = PK_TRANSACTION_PLUGIN_GET_PRIVATE (PkPluginPrivate);
 
 	/* tell PK we might be able to handle these */
-#if !PK_CHECK_VERSION(0,8,10)
-	pk_backend_implement (plugin->backend,
-			      PK_ROLE_ENUM_SIMULATE_INSTALL_FILES);
-#endif
 	pk_backend_implement (plugin->backend, PK_ROLE_ENUM_INSTALL_FILES);
 	pk_backend_implement (plugin->backend, PK_ROLE_ENUM_GET_PACKAGES);
+	pk_backend_implement (plugin->backend, PK_ROLE_ENUM_REMOVE_PACKAGES);
 }
 
 /**
@@ -502,61 +785,36 @@ pk_plugin_transaction_started (PkPlugin *plugin, PkTransaction *transaction)
 {
 	PkRoleEnum role;
 	gchar **full_paths = NULL;
-	gchar **click_files = NULL;
-#if PK_CHECK_VERSION(0,8,10)
+	gchar **package_ids = NULL;
+	gchar **click_data = NULL;
+	gchar **values;
 	PkBitfield flags;
-#endif
 	gboolean simulating;
 
 	g_debug ("Processing transaction");
 
-#if PK_CHECK_VERSION(0,8,10)
-	/* reset the native backend job */
 	pk_backend_job_reset (plugin->job);
+	pk_transaction_signals_reset (transaction, plugin->job);
 	pk_backend_job_set_status (plugin->job, PK_STATUS_ENUM_SETUP);
-#else
-	/* reset the native backend */
-	pk_backend_reset (plugin->backend);
-	pk_backend_set_status (plugin->backend, PK_STATUS_ENUM_SETUP);
-#endif
 
 	role = pk_transaction_get_role (transaction);
 
-#if PK_CHECK_VERSION(0,8,10)
 	flags = pk_transaction_get_transaction_flags (transaction);
 	simulating = pk_bitfield_contain (flags,
 					  PK_TRANSACTION_FLAG_ENUM_SIMULATE);
-#else
-	switch (role) {
-		case PK_ROLE_ENUM_SIMULATE_INSTALL_FILES:
-		case PK_ROLE_ENUM_SIMULATE_INSTALL_PACKAGES:
-		case PK_ROLE_ENUM_SIMULATE_REMOVE_PACKAGES:
-		case PK_ROLE_ENUM_SIMULATE_UPDATE_PACKAGES:
-		case PK_ROLE_ENUM_SIMULATE_REPAIR_SYSTEM:
-			simulating = TRUE;
-			break;
-
-		default:
-			simulating = FALSE;
-			break;
-	}
-#endif
 
 	switch (role) {
-#if !PK_CHECK_VERSION(0,8,10)
-		case PK_ROLE_ENUM_SIMULATE_INSTALL_FILES:
-#endif
 		case PK_ROLE_ENUM_INSTALL_FILES:
 			/* TODO: Simulation needs to be smarter - backend
 			 * needs to Simulate() with remaining packages.
 			 */
 			full_paths = pk_transaction_get_full_paths
 				(transaction);
-			click_files = click_filter_click_packages (transaction,
-								   full_paths);
-			if (!simulating && click_files)
+			click_data = click_filter_click_files (transaction,
+							       full_paths);
+			if (!simulating && click_data)
 				click_install_files (plugin, transaction,
-						     click_files);
+						     click_data);
 
 			full_paths = pk_transaction_get_full_paths
 				(transaction);
@@ -570,11 +828,33 @@ pk_plugin_transaction_started (PkPlugin *plugin, PkTransaction *transaction)
 				click_get_packages (plugin, transaction);
 			break;
 
+		case PK_ROLE_ENUM_REMOVE_PACKAGES:
+			package_ids = pk_transaction_get_package_ids
+				(transaction);
+			click_data = click_filter_click_packages (transaction,
+								  package_ids);
+			if (!simulating && click_data)
+				click_remove_packages (plugin, transaction,
+						       click_data);
+
+			package_ids = pk_transaction_get_package_ids
+				(transaction);
+			if (g_strv_length (package_ids) == 0)
+				click_skip_native_backend (plugin);
+			break;
+
+		case PK_ROLE_ENUM_SEARCH_NAME:
+		case PK_ROLE_ENUM_SEARCH_DETAILS:
+			values = pk_transaction_get_values (transaction);
+			click_search (plugin, transaction, values,
+				      role == PK_ROLE_ENUM_SEARCH_DETAILS);
+			break;
+
 		default:
 			break;
 	}
 
-	g_strfreev (click_files);
+	g_strfreev (click_data);
 }
 
 /**
@@ -589,8 +869,11 @@ pk_plugin_transaction_get_action (PkPlugin *plugin, PkTransaction *transaction,
 		"org.freedesktop.packagekit.package-install-untrusted",
 		NULL
 	};
+	const gchar *remove_action =
+		"org.freedesktop.packagekit.package-remove";
 	const gchar **install_action;
 	gchar **full_paths;
+	gchar **package_ids;
 	gint i;
 
 	if (!action_id)
@@ -601,17 +884,31 @@ pk_plugin_transaction_get_action (PkPlugin *plugin, PkTransaction *transaction,
 		if (strcmp (action_id, *install_action) == 0) {
 			/* Use an action with weaker auth requirements if
 			 * and only if all the packages in the list are
-			 * Click packages.
+			 * Click files.
 			 */
 			full_paths = pk_transaction_get_full_paths
 				(transaction);
 			for (i = 0; full_paths[i]; ++i) {
-				if (!click_is_click_package (full_paths[i]))
+				if (!click_is_click_file (full_paths[i]))
 					break;
 			}
 			if (!full_paths[i])
 				return "com.ubuntu.click.package-install";
 		}
+	}
+
+	if (strcmp (action_id, remove_action) == 0) {
+		/* Use an action with weaker auth requirements if and only
+		 * if all the packages in the list are Click packages.
+		 */
+		package_ids = pk_transaction_get_package_ids
+			(transaction);
+		for (i = 0; package_ids[i]; ++i) {
+			if (!click_is_click_package (package_ids[i]))
+				break;
+		}
+		if (!package_ids[i])
+			return "com.ubuntu.click.package-remove";
 	}
 
 	return action_id;
