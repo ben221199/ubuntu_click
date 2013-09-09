@@ -13,36 +13,47 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Register an installed Click package for a user."""
+"""Unregister an installed Click package for a user."""
 
 from __future__ import print_function
 
 from optparse import OptionParser
+import os
+import sys
 
 from click.database import ClickDB
 from click.user import ClickUser
 
 
 def run(argv):
-    parser = OptionParser("%prog register [options] PACKAGE-NAME VERSION")
+    parser = OptionParser("%prog unregister [options] PACKAGE-NAME [VERSION]")
     parser.add_option(
         "--root", metavar="PATH", help="look for additional packages in PATH")
     parser.add_option(
         "--user", metavar="USER",
-        help="register package for USER (default: current user)")
+        help="unregister package for USER (default: $SUDO_USER, if known)")
     parser.add_option(
         "--all-users", default=False, action="store_true",
-        help="register package for all users")
+        help="unregister package that was previously registered for all users")
     options, args = parser.parse_args(argv)
     if len(args) < 1:
         parser.error("need package name")
-    if len(args) < 2:
-        parser.error("need version")
+    if os.geteuid() != 0:
+        parser.error(
+            "click unregister must be started as root, since it may need to "
+            "remove packages from disk")
+    if options.user is None and "SUDO_USER" in os.environ:
+        options.user = os.environ["SUDO_USER"]
     db = ClickDB(options.root)
     package = args[0]
-    version = args[1]
     registry = ClickUser(db, user=options.user, all_users=options.all_users)
-    old_version = registry.get(package)
-    registry[package] = version
-    if old_version is not None:
-        db.maybe_remove(package, old_version)
+    old_version = registry[package]
+    if len(args) >= 2 and old_version != args[1]:
+        print(
+            "Not removing %s %s; expected version %s" %
+            (package, old_version, args[1]),
+            file=sys.stderr)
+        sys.exit(1)
+    del registry[package]
+    db.maybe_remove(package, old_version)
+    # TODO: remove data
