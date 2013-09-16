@@ -1,3 +1,15 @@
+click (0.4.5) saucy; urgency=low
+
+  * Document --force-missing-framework option in the error message produced
+    when a package's required framework is not present.
+  * Make "click pkgdir" exit 1 if a directory for the given package name or
+    path is not found, rather than letting the exception propagate
+    (LP: #1225923).
+  * Run system hooks at boot time, in particular so that AppArmor profiles
+    for packages in /custom are generated and loaded (LP: #1223085).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Sep 2013 20:55:28 +0100
+
 click (0.4.4) saucy; urgency=low
 
   * Amend "click help install" to recommend using "pkcon install-local".
