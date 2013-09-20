@@ -1,3 +1,22 @@
+click (0.4.7) saucy; urgency=low
+
+  * Run system hooks when removing a package from the file system
+    (LP: #1227681).
+  * If a hook symlink is already correct, don't unnecessarily remove and
+    recreate it.
+  * Improve "click hook install-system" and "click hook install-user" to
+    remove any stale symlinks they find, and to run Exec commands only once
+    per hook.  This significantly speeds up system and session startup when
+    lots of applications are installed (LP: #1227604).
+  * Rename "click hook install-system" and "click hook install-user" to
+    "click hook run-system" and "click hook run-user" respectively, to
+    better fit their semantics.  (I expect these commands only to have been
+    used internally by click's own Upstart jobs.)
+  * Filter version control metadata and editor backup files out of binary
+    packages in "click build" (LP: #1223640).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Sep 2013 18:07:13 +0100
+
 click (0.4.6) saucy; urgency=low
 
   * Make sure all unpacked files and directories are group- and
