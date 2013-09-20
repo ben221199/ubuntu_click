@@ -210,47 +210,66 @@ class ClickHook(Deb822):
         if self.get("trigger", "no") == "yes":
             raise NotImplementedError("'Trigger: yes' not yet implemented")
 
-    def install_package(self, package, version, app_name, relative_path,
-                        user=None):
-        # Prepare paths.
+    def _previous_entries(self, user=None):
+        """Find entries that match the structure of our links."""
+        link_dir = os.path.dirname(self.pattern("", "", "", user=user))
+        # TODO: This only works if the app ID only appears, at most, in the
+        # last component of the pattern path.
+        for previous_entry in osextras.listdir_force(link_dir):
+            previous_path = os.path.join(link_dir, previous_entry)
+            previous_exp = self._formatter.possible_expansion(
+                previous_path, self["pattern"], user=user,
+                home=self._user_home(user))
+            if previous_exp is None or "id" not in previous_exp:
+                continue
+            previous_id = previous_exp["id"]
+            try:
+                previous_package, previous_app_name, previous_version = (
+                    previous_id.split("_", 2))
+                yield (
+                    previous_path,
+                    previous_package, previous_version, previous_app_name)
+            except ValueError:
+                continue
+
+    def _install_link(self, package, version, app_name, relative_path,
+                      user=None, user_db=None):
+        """Install a hook symlink.
+
+        This should be called with dropped privileges if necessary.
+        """
         if self.user_level:
-            user_db = ClickUser(self.db, user=user)
             target = os.path.join(user_db.path(package), relative_path)
         else:
             target = os.path.join(
                 self.db.path(package, version), relative_path)
-            assert user is None
         link = self.pattern(package, version, app_name, user=user)
-        link_dir = os.path.dirname(link)
+        if not os.path.islink(link) or os.readlink(link) != target:
+            osextras.ensuredir(os.path.dirname(link))
+            osextras.symlink_force(target, link)
+
+    def install_package(self, package, version, app_name, relative_path,
+                        user=None):
+        if self.user_level:
+            user_db = ClickUser(self.db, user=user)
+        else:
+            assert user is None
 
         # Remove previous versions if necessary.
-        # TODO: This only works if the app ID only appears, at most, in the
-        # last component of the pattern path.
         if self.single_version:
-            for previous_entry in osextras.listdir_force(link_dir):
-                previous_exp = self._formatter.possible_expansion(
-                    os.path.join(link_dir, previous_entry),
-                    self["pattern"], user=user, home=self._user_home(user))
-                if previous_exp is None or "id" not in previous_exp:
-                    continue
-                previous_id = previous_exp["id"]
-                try:
-                    previous_package, previous_app_name, _ = previous_id.split(
-                        "_", 2)
-                except ValueError:
-                    continue
-                if (previous_package == package and
-                        previous_app_name == app_name):
-                    osextras.unlink_force(
-                        os.path.join(link_dir, previous_entry))
+            for path, p_package, p_version, p_app_name in \
+                    self._previous_entries(user=user):
+                if (p_package == package and p_app_name == app_name and
+                        p_version != version):
+                    osextras.unlink_force(path)
 
-        # Install new links and run commands.
         if self.user_level:
             with user_db._dropped_privileges():
-                osextras.ensuredir(link_dir)
-                osextras.symlink_force(target, link)
+                self._install_link(
+                    package, version, app_name, relative_path,
+                    user=user, user_db=user_db)
         else:
-            osextras.symlink_force(target, link)
+            self._install_link(package, version, app_name, relative_path)
         self._run_commands(user=user)
 
     def remove_package(self, package, version, app_name, user=None):
@@ -304,6 +323,29 @@ class ClickHook(Deb822):
                 self._relevant_apps(user=user)):
             self.remove_package(package, version, app_name, user=user_name)
 
+    def sync(self, user=None):
+        if self.user_level:
+            user_db = ClickUser(self.db, user=user)
+        else:
+            assert user is None
+
+        seen = set()
+        for package, version, app_name, user_name, relative_path in (
+                self._relevant_apps(user=user)):
+            seen.add((package, version, app_name))
+            if self.user_level:
+                with user_db._dropped_privileges():
+                    self._install_link(
+                        package, version, app_name, relative_path,
+                        user=user_name, user_db=user_db)
+            else:
+                self._install_link(package, version, app_name, relative_path)
+        for path, package, version, app_name in \
+                self._previous_entries(user=user):
+            if (package, version, app_name) not in seen:
+                osextras.unlink_force(path)
+        self._run_commands(user=user)
+
 
 def _app_hooks(hooks):
     items = set()
@@ -354,9 +396,7 @@ def package_remove_hooks(db, package, old_version, user=None):
             for hook in ClickHook.open_all(db, hook_name):
                 if hook.user_level != (user is not None):
                     continue
-                if hook.single_version:
-                    hook.remove_package(
-                        package, old_version, app_name, user=user)
+                hook.remove_package(package, old_version, app_name, user=user)
 
 
 def run_system_hooks(db):
@@ -368,7 +408,7 @@ def run_system_hooks(db):
     """
     for hook in ClickHook.open_all(db):
         if not hook.user_level:
-            hook.install()
+            hook.sync()
 
 
 def run_user_hooks(db, user=None):
@@ -382,4 +422,4 @@ def run_user_hooks(db, user=None):
         user = pwd.getpwuid(os.getuid()).pw_name
     for hook in ClickHook.open_all(db):
         if hook.user_level:
-            hook.install(user=user)
+            hook.sync(user=user)
