@@ -29,9 +29,11 @@ import inspect
 import json
 import os
 import pwd
+import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 
 from contextlib import closing
 
@@ -86,87 +88,110 @@ class ClickInstaller:
         return os.path.exists(os.path.join(
             frameworks_dir, "%s.framework" % name))
 
-    def audit_control(self, control_part):
-        """Check that all requirements on the control part are met.
+    def extract(self, path, target):
+        command = ["dpkg-deb", "-R", path, target]
+        with open(path, "rb") as fd:
+            env = dict(os.environ)
+            preloads = [self._preload_path()]
+            if "LD_PRELOAD" in env:
+                preloads.append(env["LD_PRELOAD"])
+            env["LD_PRELOAD"] = " ".join(preloads)
+            env["CLICK_BASE_DIR"] = target
+            env["CLICK_PACKAGE_PATH"] = path
+            env["CLICK_PACKAGE_FD"] = str(fd.fileno())
+            env.pop("HOME", None)
+            kwargs = {}
+            if sys.version >= "3.2":
+                kwargs["pass_fds"] = (fd.fileno(),)
+            subprocess.check_call(command, env=env, **kwargs)
 
-        Returns the package name.
-        """
-        control_fields = control_part.debcontrol()
-
-        try:
-            click_version = Version(control_fields["Click-Version"])
-        except KeyError:
-            raise ValueError("No Click-Version field")
-        if click_version > spec_version:
-            raise ValueError(
-                "Click-Version: %s newer than maximum supported version %s" %
-                (click_version, spec_version))
-
-        for field in (
-            "Pre-Depends", "Depends", "Recommends", "Suggests", "Enhances",
-            "Conflicts", "Breaks",
-            "Provides",
-        ):
-            if field in control_fields:
-                raise ValueError(
-                    "%s field is forbidden in Click packages" % field)
-
-        scripts = control_part.scripts()
-        if ("preinst" in scripts and
-                static_preinst_matches(scripts["preinst"])):
-            scripts.pop("preinst", None)
-        if scripts:
-            raise ValueError(
-                "Maintainer scripts are forbidden in Click packages "
-                "(found: %s)" %
-                " ".join(sorted(scripts)))
-
-        if not control_part.has_file("manifest"):
-            raise ValueError("Package has no manifest")
-        with control_part.get_file("manifest", encoding="UTF-8") as f:
-            manifest = json.load(f)
-
-        try:
-            package_name = manifest["name"]
-        except KeyError:
-            raise ValueError('No "name" entry in manifest')
-        # TODO: perhaps just do full name validation?
-        if "/" in package_name:
-            raise ValueError(
-                'Invalid character "/" in "name" entry: %s' % package_name)
-        if "_" in package_name:
-            raise ValueError(
-                'Invalid character "_" in "name" entry: %s' % package_name)
-
-        try:
-            package_version = manifest["version"]
-        except KeyError:
-            raise ValueError('No "version" entry in manifest')
-        # TODO: perhaps just do full version validation?
-        if "/" in package_version:
-            raise ValueError(
-                'Invalid character "/" in "version" entry: %s' %
-                package_version)
-        if "_" in package_version:
-            raise ValueError(
-                'Invalid character "_" in "version" entry: %s' %
-                package_version)
-
-        try:
-            framework = manifest["framework"]
-        except KeyError:
-            raise ValueError('No "framework" entry in manifest')
-        if (not self.force_missing_framework and
-                not self._has_framework(framework)):
-            raise ValueError(
-                'Framework "%s" not present on system (use '
-                '--force-missing-framework option to override)' % framework)
-
-        return package_name, package_version
-
-    def audit(self, path):
+    def audit(self, path, slow=False):
         with closing(DebFile(filename=path)) as package:
-            return self.audit_control(package.control)
+            control_fields = package.control.debcontrol()
+
+            try:
+                click_version = Version(control_fields["Click-Version"])
+            except KeyError:
+                raise ValueError("No Click-Version field")
+            if click_version > spec_version:
+                raise ValueError(
+                    "Click-Version: %s newer than maximum supported version "
+                    "%s" % (click_version, spec_version))
+
+            for field in (
+                "Pre-Depends", "Depends", "Recommends", "Suggests", "Enhances",
+                "Conflicts", "Breaks",
+                "Provides",
+            ):
+                if field in control_fields:
+                    raise ValueError(
+                        "%s field is forbidden in Click packages" % field)
+
+            scripts = package.control.scripts()
+            if ("preinst" in scripts and
+                    static_preinst_matches(scripts["preinst"])):
+                scripts.pop("preinst", None)
+            if scripts:
+                raise ValueError(
+                    "Maintainer scripts are forbidden in Click packages "
+                    "(found: %s)" %
+                    " ".join(sorted(scripts)))
+
+            if not package.control.has_file("manifest"):
+                raise ValueError("Package has no manifest")
+            with package.control.get_file("manifest", encoding="UTF-8") as f:
+                manifest = json.load(f)
+
+            try:
+                package_name = manifest["name"]
+            except KeyError:
+                raise ValueError('No "name" entry in manifest')
+            # TODO: perhaps just do full name validation?
+            if "/" in package_name:
+                raise ValueError(
+                    'Invalid character "/" in "name" entry: %s' % package_name)
+            if "_" in package_name:
+                raise ValueError(
+                    'Invalid character "_" in "name" entry: %s' % package_name)
+
+            try:
+                package_version = manifest["version"]
+            except KeyError:
+                raise ValueError('No "version" entry in manifest')
+            # TODO: perhaps just do full version validation?
+            if "/" in package_version:
+                raise ValueError(
+                    'Invalid character "/" in "version" entry: %s' %
+                    package_version)
+            if "_" in package_version:
+                raise ValueError(
+                    'Invalid character "_" in "version" entry: %s' %
+                    package_version)
+
+            try:
+                framework = manifest["framework"]
+            except KeyError:
+                raise ValueError('No "framework" entry in manifest')
+            if (not self.force_missing_framework and
+                    not self._has_framework(framework)):
+                raise ValueError(
+                    'Framework "%s" not present on system (use '
+                    '--force-missing-framework option to override)' %
+                    framework)
+
+            if slow:
+                temp_dir = tempfile.mkdtemp(prefix="click")
+                try:
+                    self.extract(path, temp_dir)
+                    command = [
+                        "md5sum", "-c", "--quiet",
+                        os.path.join("DEBIAN", "md5sums"),
+                    ]
+                    subprocess.check_call(command, cwd=temp_dir)
+                finally:
+                    shutil.rmtree(temp_dir)
+
+            return package_name, package_version
 
     def _drop_privileges(self, username):
         if os.geteuid() != 0:
@@ -301,7 +326,7 @@ class ClickInstaller:
 
         if user is not None or all_users:
             registry = ClickUser(self.db, user=user, all_users=all_users)
-            registry[package_name] = package_version
+            registry.set_version(package_name, package_version)
 
         if old_version is not None:
             self.db.maybe_remove(package_name, old_version)
