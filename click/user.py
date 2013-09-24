@@ -38,7 +38,7 @@ __all__ = [
     'ClickUsers',
     ]
 
-from collections import Mapping, MutableMapping
+from collections import Mapping
 from contextlib import contextmanager
 import os
 import pwd
@@ -50,6 +50,11 @@ from click import osextras
 # to group syntaxes used in other systems.
 ALL_USERS = "@all"
 GC_IN_USE_USER = "@gcinuse"
+
+# Pseudo-versions.  In this case the @ doesn't allude to group syntaxes, but
+# since @ is conveniently invalid in version numbers we stick to the same
+# prefix used for pseudo-usernames.
+HIDDEN_VERSION = "@hidden"
 
 
 def _db_top(root):
@@ -114,7 +119,7 @@ class ClickUsers(Mapping):
             raise KeyError("User %s does not exist in any database" % user)
 
 
-class ClickUser(MutableMapping):
+class ClickUser(Mapping):
     """Database of package versions registered for a single user."""
 
     def __init__(self, db, user=None, all_users=False):
@@ -190,26 +195,35 @@ class ClickUser(MutableMapping):
         finally:
             self._regain_privileges()
 
+    def _is_valid_link(self, path):
+        return os.path.islink(path) and not os.readlink(path).startswith("@")
+
     def __iter__(self):
         # We cannot be lazy here, because otherwise calling code may
         # unwittingly end up with dropped privileges.
         entries = []
+        hidden = set()
         with self._dropped_privileges():
-            for db in self.db:
+            for db in reversed(self.db):
                 user_db = _db_for_user(db.root, self.user)
                 for entry in osextras.listdir_force(user_db):
-                    if entry in entries:
+                    if entry in entries or entry in hidden:
                         continue
-                    if os.path.islink(os.path.join(user_db, entry)):
+                    path = os.path.join(user_db, entry)
+                    if self._is_valid_link(path):
                         entries.append(entry)
+                    elif os.path.islink(path):
+                        hidden.add(entry)
                 if not self.all_users:
                     all_users_db = _db_for_user(db.root, ALL_USERS)
                     for entry in osextras.listdir_force(all_users_db):
-                        if entry in entries:
+                        if entry in entries or entry in hidden:
                             continue
-                        # TODO: support whiteout
-                        if os.path.islink(os.path.join(all_users_db, entry)):
+                        path = os.path.join(all_users_db, entry)
+                        if self._is_valid_link(path):
                             entries.append(entry)
+                        elif os.path.islink(path):
+                            hidden.add(entry)
 
         return iter(entries)
 
@@ -224,59 +238,65 @@ class ClickUser(MutableMapping):
             user_db = _db_for_user(db.root, self.user)
             path = os.path.join(user_db, package)
             with self._dropped_privileges():
-                if os.path.islink(path):
+                if self._is_valid_link(path):
                     return os.path.basename(os.readlink(path))
+                elif os.path.islink(path):
+                    raise KeyError(
+                        "%s is hidden for user %s" % (package, self.user))
             all_users_db = _db_for_user(db.root, ALL_USERS)
             path = os.path.join(all_users_db, package)
-            # TODO: support whiteout
-            if os.path.islink(path):
+            if self._is_valid_link(path):
                 return os.path.basename(os.readlink(path))
+            elif os.path.islink(path):
+                raise KeyError("%s is hidden for all users" % package)
         else:
             raise KeyError(
                 "%s does not exist in any database for user %s" %
                 (package, self.user))
 
-    def __setitem__(self, package, version):
+    def set_version(self, package, version):
         # Circular import.
         from click.hooks import package_install_hooks
 
         # Only modify the last database.
-        root = self.db.overlay
         user_db = self.overlay_db
         path = os.path.join(user_db, package)
         new_path = os.path.join(user_db, ".%s.new" % package)
         self._ensure_db()
         old_version = self.get(package)
         with self._dropped_privileges():
-            target = os.path.join(root, package, version)
-            if not os.path.exists(target):
-                raise ValueError("%s does not exist" % target)
-            osextras.symlink_force(target, new_path)
-            os.rename(new_path, path)
+            target = self.db.path(package, version)
+            done = False
+            if self._is_valid_link(path):
+                osextras.unlink_force(path)
+                if self.get(path) == version:
+                    done = True
+            if not done:
+                osextras.symlink_force(target, new_path)
+                os.rename(new_path, path)
         if not self.pseudo_user:
             package_install_hooks(
                 self.db, package, old_version, version, user=self.user)
 
-    def __delitem__(self, package):
+    def remove(self, package):
         # Circular import.
         from click.hooks import package_remove_hooks
 
         # Only modify the last database.
-        # TODO: In the multiple-root case, this cannot fulfil the contract
-        # for __delitem__, because deleting an item from an overlay may
-        # simply expose an item in an underlay.  To fix this, we probably
-        # need to switch to normal method names at least for setting and
-        # deleting, and make this class no longer a MutableMapping.
         user_db = self.overlay_db
         path = os.path.join(user_db, package)
         with self._dropped_privileges():
-            if os.path.islink(path):
+            if self._is_valid_link(path):
                 old_version = os.path.basename(os.readlink(path))
                 osextras.unlink_force(path)
             else:
-                raise KeyError(
-                    "%s does not exist in overlay database for user %s" %
-                    (package, self.user))
+                try:
+                    old_version = self[package]
+                    osextras.symlink_force(HIDDEN_VERSION, path)
+                except KeyError:
+                    raise KeyError(
+                        "%s does not exist in any database for user %s" %
+                        (package, self.user))
         if not self.pseudo_user:
             package_remove_hooks(self.db, package, old_version, user=self.user)
 
@@ -284,26 +304,39 @@ class ClickUser(MutableMapping):
         for db in reversed(self.db):
             user_db = _db_for_user(db.root, self.user)
             path = os.path.join(user_db, package)
-            if os.path.exists(path):
+            if self._is_valid_link(path):
                 return path
+            elif os.path.islink(path):
+                raise KeyError(
+                    "%s is hidden for user %s" % (package, self.user))
             all_users_db = _db_for_user(db.root, ALL_USERS)
             path = os.path.join(all_users_db, package)
-            # TODO: support whiteout
-            if os.path.exists(path):
+            if self._is_valid_link(path):
                 return path
+            elif os.path.islink(path):
+                raise KeyError("%s is hidden for all users" % package)
         else:
             raise KeyError(
                 "%s does not exist in any database for user %s" %
                 (package, self.user))
 
-    def writeable(self, package):
+    def removable(self, package):
         user_db = self.overlay_db
         path = os.path.join(user_db, package)
         if os.path.exists(path):
             return True
+        elif os.path.islink(path):
+            # Already hidden.
+            return False
         all_users_db = _db_for_user(self.db.overlay, ALL_USERS)
         path = os.path.join(all_users_db, package)
-        # TODO: support whiteout
-        if os.path.exists(path):
+        if self._is_valid_link(path):
             return True
-        return False
+        elif os.path.islink(path):
+            # Already hidden.
+            return False
+        if package in self:
+            # Not in overlay database, but can be hidden.
+            return True
+        else:
+            return False

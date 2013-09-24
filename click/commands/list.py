@@ -38,7 +38,7 @@ def list_packages(options):
         for package, version in sorted(registry.items()):
             yield (
                 package, version, registry.path(package),
-                registry.writeable(package))
+                registry.removable(package))
 
 
 def run(argv):
@@ -78,3 +78,4 @@ def run(argv):
         json.dump(
             json_output, sys.stdout, ensure_ascii=False, sort_keys=True,
             indent=4, separators=(",", ": "))
+        print()

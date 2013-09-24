@@ -1,3 +1,30 @@
+click (0.4.8) saucy; urgency=low
+
+  * Show a proper error message if "click build" or "click buildsource" is
+    called on a directory that does not exist or does not contain a manifest
+    file, rather than crashing (LP: #1228619).
+  * Restore missing newlines after JSON dumps in "click info" and "click
+    list --manifest".
+  * Tidy up use of PackageKit IDs; local:click should refer to uninstalled
+    packages, while installed:click refers to installed packages.
+  * Expose application names and whether a package is removable via the
+    PackageKit API: the IDs of installed applications are now formed as
+    comma-separated key/value pairs, e.g.
+    "installed:click,removable=1,app_name=foo,app_name=bar" (LP: #1209329).
+  * Rename ClickUser.__setitem__ to ClickUser.set_version and
+    ClickUser.__delitem__ to ClickUser.remove; with multiple databases it
+    was impossible for these methods to fulfil the normal contract for
+    mutable mappings, since deleting an item might simply expose an item in
+    an underlying database.
+  * Allow unregistering preinstalled packages.  A preinstalled package
+    cannot in general actually be removed from disk, but unregistering it
+    for a user records it as being hidden from that user's list of
+    registered packages.  Reinstalling the same version unhides it.
+  * Consolidate ClickInstaller.audit_control into ClickInstaller.audit.
+  * Validate the shipped md5sums file in "click verify" (LP: #1217333).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 24 Sep 2013 15:21:48 +0100
+
 click (0.4.7) saucy; urgency=low
 
   * Run system hooks when removing a package from the file system
