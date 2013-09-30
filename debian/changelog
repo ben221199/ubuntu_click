@@ -1,3 +1,20 @@
+click (0.4.9) saucy; urgency=low
+
+  * Explicitly build-depend on pkg-config, since it's needed even if the
+    PackageKit/GLib-related build-dependencies are removed for backporting.
+  * Remove some stray documentation references to Ubuntu 13.04.
+  * Ensure that the user's overlay database directory exists when
+    unregistering a preinstalled package (LP: #1232066).
+  * Support packages containing code for multiple architectures, and
+    document the "architecture" manifest field (LP: #1214380, #1214864).
+  * Correctly pass through return values of commands as the exit status of
+    the "click" wrapper.
+  * Extend "click info" to take a registered package name as an alternative
+    to a path to a Click package file (LP: #1232118).
+  * Force unpacked files to be owner-writeable (LP: #1232128).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Sep 2013 15:24:49 +0100
+
 click (0.4.8) saucy; urgency=low
 
   * Show a proper error message if "click build" or "click buildsource" is
