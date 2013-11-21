@@ -1,3 +1,18 @@
+click (0.4.12) trusty; urgency=low
+
+  [ Colin Watson ]
+  * Adjust top-level "click help" entry for "install" to point to pkcon.
+  * Fix hook installation tests to test Unicode manifests properly.
+  * Read version and date from debian/changelog when building documentation.
+  * Declare click-dev Multi-Arch: foreign (LP: #1238796).
+  * Build-depend on python3:any/python3-all:any rather than
+    python3/python3-all.
+
+  [ Brian Murray, Colin Watson ]
+  * Add chroot management support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Nov 2013 14:46:16 +0000
+
 click (0.4.11) saucy; urgency=low
 
   * Drop --force-missing-framework from PackageKit plugin now that
