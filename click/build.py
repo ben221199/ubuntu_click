@@ -122,6 +122,7 @@ class ClickBuilderBase:
 class ClickBuilder(ClickBuilderBase):
     # TODO: This should be configurable, or at least extensible.
     _ignore_patterns = [
+        "*.click",
         ".*.sw?",
         "*~",
         ",,*",
@@ -276,6 +277,7 @@ class ClickSourceBuilder(ClickBuilderBase):
     # TODO: This should be configurable, or at least extensible.
     _ignore_patterns = [
         "*.a",
+        "*.click",
         "*.la",
         "*.o",
         "*.so",
