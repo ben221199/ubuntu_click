@@ -245,6 +245,26 @@ class TestClickBuilder(TestCase, TestClickBuilderBaseMixin):
             del target_json["installed-size"]
             self.assertEqual(source_json, target_json)
 
+    def test_build_multiple_frameworks(self):
+        self.use_temp_dir()
+        scratch = os.path.join(self.temp_dir, "scratch")
+        with mkfile(os.path.join(scratch, "manifest.json")) as f:
+            json.dump({
+                "name": "com.ubuntu.test",
+                "version": "1.0",
+                "maintainer": "Foo Bar <foo@example.org>",
+                "title": "test title",
+                "architecture": "all",
+                "framework":
+                    "ubuntu-sdk-14.04-basic, ubuntu-sdk-14.04-webapps",
+            }, f)
+        self.builder.add_file(scratch, "/")
+        self.assertRaisesRegex(
+            ClickBuildError,
+            'Multiple dependencies in framework "ubuntu-sdk-14.04-basic, '
+            'ubuntu-sdk-14.04-webapps" not yet allowed',
+            self.builder.build, self.temp_dir)
+
 
 class TestClickSourceBuilder(TestCase, TestClickBuilderBaseMixin):
     def setUp(self):

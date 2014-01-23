@@ -26,35 +26,46 @@ from click.chroot import ClickChroot
 from click import osextras
 
 
-def create(args):
+def requires_root(parser):
+    if os.getuid() != 0:
+        parser.error("must be run as root; try sudo")
+
+
+def create(parser, args):
+    if not osextras.find_on_path("debootstrap"):
+        parser.error(
+            "debootstrap not installed and configured; install click-dev and "
+            "debootstrap")
+    requires_root(parser)
     ClickChroot(args.architecture, args.framework, series=args.series).create()
 
 
-def install(args):
+def install(parser, args):
     packages = args.packages
     ClickChroot(args.architecture, args.framework).install(*packages)
 
 
-def destroy(args):
+def destroy(parser, args):
+    requires_root(parser)
     # ask for confirmation?
     ClickChroot(args.architecture, args.framework).destroy()
 
 
-def execute(args):
+def execute(parser, args):
     program = args.program
     if not program:
         program = ["/bin/bash"]
     ClickChroot(args.architecture, args.framework).run(*program)
 
 
-def maint(args):
+def maint(parser, args):
     program = args.program
     if not program:
         program = ["/bin/bash"]
     ClickChroot(args.architecture, args.framework).maint(*program)
 
 
-def upgrade(args):
+def upgrade(parser, args):
     ClickChroot(args.architecture, args.framework).upgrade()
 
 
@@ -107,9 +118,13 @@ def run(argv):
         help="program to run with arguments")
     maint_parser.set_defaults(func=maint)
     args = parser.parse_args(argv)
+    if not hasattr(args, "func"):
+        parser.print_help()
+        return 1
     if (not osextras.find_on_path("schroot") or
             not os.path.exists("/etc/schroot/click/fstab")):
         parser.error(
             "schroot not installed and configured; install click-dev and "
             "schroot")
-    args.func(args)
+    args.func(parser, args)
+    return 0
