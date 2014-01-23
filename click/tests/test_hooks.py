@@ -138,6 +138,27 @@ class TestClickHookSystemLevel(TestClickHookBase):
         self.assertRaises(
             ValueError, hook.app_id, "package", "0.1", "app/name")
 
+    def test_short_id_invalid(self):
+        with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+            print("Pattern: /usr/share/test/${short-id}.test", file=f)
+        with temp_hooks_dir(self.temp_dir):
+            hook = ClickHook.open(self.db, "test")
+        # It would perhaps be better if unrecognised $-expansions raised
+        # KeyError, but they don't right now.
+        self.assertEqual(
+            "/usr/share/test/.test",
+            hook.pattern("package", "0.1", "app-name"))
+
+    def test_short_id_valid_with_single_version(self):
+        with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+            print("Pattern: /usr/share/test/${short-id}.test", file=f)
+            print("Single-Version: yes", file=f)
+        with temp_hooks_dir(self.temp_dir):
+            hook = ClickHook.open(self.db, "test")
+        self.assertEqual(
+            "/usr/share/test/package_app-name.test",
+            hook.pattern("package", "0.1", "app-name"))
+
     @mock.patch("subprocess.check_call")
     def test_run_commands(self, mock_check_call):
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
@@ -179,6 +200,20 @@ class TestClickHookSystemLevel(TestClickHookBase):
             self.temp_dir, "org.example.package_test-app_1.0.test")
         target_path = os.path.join(
             self.temp_dir, "org.example.package", "1.0", "foo", "bar")
+        self.assertTrue(os.path.islink(symlink_path))
+        self.assertEqual(target_path, os.readlink(symlink_path))
+
+    def test_install_package_trailing_slash(self):
+        with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+            print("Pattern: %s/${id}/" % self.temp_dir, file=f)
+        os.makedirs(os.path.join(self.temp_dir, "org.example.package", "1.0"))
+        with temp_hooks_dir(self.temp_dir):
+            hook = ClickHook.open(self.db, "test")
+        hook.install_package("org.example.package", "1.0", "test-app", "foo")
+        symlink_path = os.path.join(
+            self.temp_dir, "org.example.package_test-app_1.0")
+        target_path = os.path.join(
+            self.temp_dir, "org.example.package", "1.0", "foo")
         self.assertTrue(os.path.islink(symlink_path))
         self.assertEqual(target_path, os.readlink(symlink_path))
 
@@ -352,6 +387,23 @@ class TestClickHookUserLevel(TestClickHookBase):
         self.assertRaises(
             ValueError, hook.app_id, "package", "0.1", "app/name")
 
+    @mock.patch("pwd.getpwnam")
+    def test_short_id_valid(self, mock_getpwnam):
+        class MockPasswd:
+            def __init__(self, pw_dir):
+                self.pw_dir = pw_dir
+
+        mock_getpwnam.return_value = MockPasswd(pw_dir="/mock")
+        with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+            print("User-Level: yes", file=f)
+            print(
+                "Pattern: ${home}/.local/share/test/${short-id}.test", file=f)
+        with temp_hooks_dir(self.temp_dir):
+            hook = ClickHook.open(self.db, "test")
+        self.assertEqual(
+            "/mock/.local/share/test/package_app-name.test",
+            hook.pattern("package", "0.1", "app-name", user="mock"))
+
     @mock.patch("subprocess.check_call")
     def test_run_commands(self, mock_check_call):
         with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
@@ -404,6 +456,28 @@ class TestClickHookUserLevel(TestClickHookBase):
         target_path = os.path.join(
             self.temp_dir, ".click", "users", "test-user",
             "org.example.package", "foo", "bar")
+        self.assertTrue(os.path.islink(symlink_path))
+        self.assertEqual(target_path, os.readlink(symlink_path))
+
+    @mock.patch("click.hooks.ClickHook._user_home")
+    def test_install_package_trailing_slash(self, mock_user_home):
+        mock_user_home.return_value = "/home/test-user"
+        with temp_hooks_dir(self.temp_dir):
+            os.makedirs(os.path.join(
+                self.temp_dir, "org.example.package", "1.0"))
+            user_db = ClickUser(self.db, user="test-user")
+            user_db.set_version("org.example.package", "1.0")
+            with mkfile(os.path.join(self.temp_dir, "test.hook")) as f:
+                print("User-Level: yes", file=f)
+                print("Pattern: %s/${id}/" % self.temp_dir, file=f)
+            hook = ClickHook.open(self.db, "test")
+        hook.install_package(
+            "org.example.package", "1.0", "test-app", "foo", user="test-user")
+        symlink_path = os.path.join(
+            self.temp_dir, "org.example.package_test-app_1.0")
+        target_path = os.path.join(
+            self.temp_dir, ".click", "users", "test-user",
+            "org.example.package", "foo")
         self.assertTrue(os.path.islink(symlink_path))
         self.assertEqual(target_path, os.readlink(symlink_path))
 

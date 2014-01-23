@@ -1,3 +1,32 @@
+click (0.4.14) trusty; urgency=low
+
+  [ Colin Watson ]
+  * chroot: Print help if no subcommand given (LP: #1260669).
+  * chroot: Recommend debootstrap from click-dev, and explicitly check for
+    it in "click chroot create" (LP: #1260487).
+  * chroot: Check for root in "create" and "destroy" (LP: #1260671).
+  * hooks: Add a ${short-id} expansion to hook patterns; this is valid only
+    in user-level or single-version hooks, and expands to a new "short
+    application ID" without the version (LP: #1251635).
+  * hooks: Strip any trailing slashes from the end of patterns, as they
+    cause confusion with symlink-to-directory semantics and can never be
+    useful (LP: #1253855).
+  * install: Extend the interpretation of "framework" a little bit to allow
+    a Click package to declare that it requires multiple frameworks.  This
+    will allow splitting up the SDK framework declarations into more
+    fine-grained elements.
+  * Policy version 3.9.5: no changes required.
+  * build: Enforce only a single framework declaration for now, by request.
+
+  [ Zoltan Balogh ]
+  * Add qtmultimedia5-dev to the SDK framework list.
+
+  [ Dimitri John Ledkov ]
+  * chroot: Add "cmake" to build_pkgs, as it is expected for cmake to be
+    available on any (Ubuntu) framework.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 23 Jan 2014 17:30:54 +0000
+
 click (0.4.13) trusty; urgency=low
 
   [ Robert Bruce Park ]
