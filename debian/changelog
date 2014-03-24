@@ -1,3 +1,12 @@
+click (0.4.20) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * Create system hook symlinks for all installed packages, not just current
+    versions.  This avoids missing AppArmor profiles when there are
+    unregistered user-installed versions of packages lying around.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 24 Mar 2014 16:16:37 +0000
+
 click (0.4.19) trusty; urgency=medium
 
   [ Colin Watson ]
