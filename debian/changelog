@@ -1,3 +1,11 @@
+click (0.4.29.1) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Trivial fix for the current autopkgtest failure.  The ADT environment
+    does not have the USER environment set.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 04 Jul 2014 15:10:01 +0000
+
 click (0.4.29) utopic; urgency=medium
 
   [ Michael Vogt ]
