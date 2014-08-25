@@ -22,11 +22,9 @@ from .helpers import ClickTestCase
 
 class TestVerify(ClickTestCase):
     def test_verify_ok(self):
-        name = "com.example.verify-ok"
+        name = "com.ubuntu.verify-ok"
         path_to_click = self._make_click(name)
         output = subprocess.check_output([
-            self.click_binary, "verify",
-            "--force-missing-framework",
-            "--allow-unauthenticated",
+            self.click_binary, "verify", "--force-missing-framework",
             path_to_click], universal_newlines=True)
         self.assertEqual(output, "")
