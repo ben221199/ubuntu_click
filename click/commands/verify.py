@@ -29,15 +29,10 @@ def run(argv):
     parser.add_option(
         "--force-missing-framework", action="store_true", default=False,
         help="ignore missing system framework")
-    parser.add_option(
-        "--allow-unauthenticated", action="store_true", default=False,
-        help="allow installing packages with no sigantures")
     options, args = parser.parse_args(argv)
     if len(args) < 1:
         parser.error("need package file name")
     package_path = args[0]
-    installer = ClickInstaller(
-        db=None, force_missing_framework=options.force_missing_framework,
-        allow_unauthenticated=options.allow_unauthenticated)
+    installer = ClickInstaller(None, options.force_missing_framework)
     installer.audit(package_path, slow=True)
     return 0
