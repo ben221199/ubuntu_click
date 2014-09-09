@@ -1,3 +1,10 @@
+click (0.4.32.1) utopic; urgency=low
+
+  [ Michael Vogt ]
+  * fix autopkgtest failure found in 0.4.32
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 09 Sep 2014 10:02:00 +0000
+
 click (0.4.32) utopic; urgency=medium
 
   [ Daniel Holbach ]
@@ -16,7 +23,7 @@ click (0.4.32) utopic; urgency=medium
   * Only install trusted click packages by default. To override you
     can run "pkcon --allow-untrusted" (LP: #1360582)
 
- -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Sat, 06 Sep 2014 12:06:31 +0000
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 08 Sep 2014 09:50:43 +0000
 
 click (0.4.31.3) utopic; urgency=medium
 
