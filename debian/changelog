@@ -1,3 +1,10 @@
+click (0.4.38.5) vivid; urgency=medium
+
+  [ Sebastien Bacher ]
+  * Don't try to replace initctl if it's not there (lp: #1430436)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Tue, 10 Mar 2015 18:52:17 +0000
+
 click (0.4.38.4) vivid; urgency=low
 
   [ Michael Vogt ]
