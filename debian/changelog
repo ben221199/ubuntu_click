@@ -1,3 +1,13 @@
+click (0.4.39) vivid; urgency=low
+
+  [ Marco Trevisan (Treviño) ]
+  * handle "IP NOT FOUND" error (LP: #1433234)
+
+  [ Michael Vogt ]
+  * switch the default click chroot framework to ubuntu-sdk-14.04
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 07 May 2015 14:47:11 +0000
+
 click (0.4.38.5) vivid; urgency=medium
 
   [ Sebastien Bacher ]
