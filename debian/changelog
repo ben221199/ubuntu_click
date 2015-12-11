@@ -1,3 +1,25 @@
+click (0.4.41+16.04.20151211-0ubuntu1) xenial; urgency=medium
+
+  [ Colin Watson ]
+  * Fix spurious test_sync_without_user_db test failure.
+  * Fix test failures under Python 2.
+  * Forbid installing packages with data tarball members whose names do not
+    start with "./" (LP: #1506467).
+  * Take evasive action in case the conflicting "click" package has been
+    installed locally from PyPI (LP: #1486841).
+  * Drop use of apt_pkg from click.install, since it's no longer needed
+    there (LP: #1510015).
+
+  [ Dimitri John Ledkov ]
+  * Require specific Click version, to avoid gi warnings that fail
+    test-suite (LP: #1522608).
+  * Set Vcs-* fields to the actual development branch.
+
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri, 11 Dec 2015 01:31:29 +0000
+
 click (0.4.40+15.10.20151006-0ubuntu1.1) wily; urgency=medium
 
   * SECURITY UPDATE: fix privilege escalation via crafted data.tar.gz that
