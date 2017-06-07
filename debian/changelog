@@ -1,3 +1,12 @@
+click (0.4.46+17.10.20170607.2-0ubuntu1) artful; urgency=medium
+
+  * Rename the python package this installs from click to click_package.
+    (LP: #1693226)
+  * Use the correct overlayfs module name for the chroot configuration.
+    (LP: #1696402)
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 07 Jun 2017 11:46:15 +0000
+
 click (0.4.45.1+16.10.20160916-0ubuntu1) yakkety; urgency=medium
 
   * Kill gpg-agent (if possible) after running debsigs in integration tests.
