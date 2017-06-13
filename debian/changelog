@@ -1,3 +1,10 @@
+click (0.4.43+16.04.20170613-0ubuntu1) xenial; urgency=medium
+
+  * Rename the python package this installs from click to click_package.
+    (LP: #1693226)
+
+ -- Kyle Fazzari <kyle@canonical.com>  Tue, 13 Jun 2017 17:14:46 +0000
+
 click (0.4.43+16.04.20160203-0ubuntu2) xenial; urgency=medium
 
   * Fix python3-click-package -> python3-click Replaces version
