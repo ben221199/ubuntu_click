@@ -20,7 +20,6 @@ import unittest
 
 from .helpers import (
     require_network,
-    require_overlay,
     require_root,
     ClickTestCase,
 )
@@ -51,7 +50,6 @@ class TestChroot(ClickTestCase):
         super(TestChroot, cls).setUpClass()
         require_root()
         require_network()
-        require_overlay()
         cls.arch = subprocess.check_output(
             ["dpkg", "--print-architecture"], universal_newlines=True).strip()
         subprocess.check_call(cls.command(cls.arch, "create"))

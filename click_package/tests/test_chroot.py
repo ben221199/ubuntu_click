@@ -298,10 +298,9 @@ class TestClickChroot(TestCase):
                 # Not protocols or services see
                 # debian bug 557730
                 setup.nssdatabases=sbuild/nssdatabases
-                union-type={overlayfs}
+                union-type=overlayfs
                 directory={temp_dir}
-                """).format(user="meep", temp_dir=self.temp_dir,
-                            overlayfs=chroot._get_overlayfs_name()))
+                """).format(user="meep", temp_dir=self.temp_dir))
 
     def test_chroot_create_mocked(self):
         self.use_temp_dir()
