@@ -106,13 +106,13 @@ class TestClickInstall(ClickTestCase):
         # from the path
         output = subprocess.check_output(
             [self.click_binary, "pkgdir",
-             "/opt/click.ubuntu.com/%s/1.2/README" % name],
+             "@DEFAULT_ROOT@/%s/1.2/README" % name],
             universal_newlines=True).strip()
-        self.assertEqual(output, "/opt/click.ubuntu.com/%s/1.2" % name)
+        self.assertEqual(output, "@DEFAULT_ROOT@/%s/1.2" % name)
         # now test from the click package name
         output = subprocess.check_output(
             [self.click_binary, "pkgdir", name],
             universal_newlines=True).strip()
         # note that this is different from above
         self.assertEqual(
-            output, "/opt/click.ubuntu.com/.click/users/@all/%s" % name)
+            output, "@DEFAULT_ROOT@/.click/users/@all/%s" % name)

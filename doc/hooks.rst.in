@@ -211,7 +211,7 @@ Examples
 
   /usr/share/click/hooks/click-desktop.hook:
     User-Level: yes
-    Pattern: /opt/click.ubuntu.com/.click/desktop-files/${user}_${id}.desktop
+    Pattern: @DEFAULT_ROOT@/.click/desktop-files/${user}_${id}.desktop
     Exec: click desktophook
     Hook-Name: desktop
 

@@ -1,3 +1,7 @@
+SUBDIRS = integration
+
+NULL =
+
 noinst_DATA = preload.gir
 CLEANFILES = $(noinst_DATA)
 
@@ -11,12 +15,19 @@ preload.gir: preload.h
 		--libtool "$(LIBTOOL)" \
 		$< --output $@
 
-noinst_SCRIPTS = test_paths.py
+noinst_SCRIPTS = test_database.py \
+                 test_paths.py \
+                 $(NULL)
 CLEANFILES += $(noinst_SCRIPTS)
 
 do_subst = sed \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
-	-e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
+	-e 's,[@]pkgdatadir[@],$(pkgdatadir),g' \
+	-e 's,[@]DEFAULT_ROOT[@],$(DEFAULT_ROOT),g' \
+	$(NULL)
+
+test_database.py: test_database.py.in Makefile
+	$(do_subst) < $(srcdir)/test_database.py.in > $@
 
 test_paths.py: test_paths.py.in Makefile
 	$(do_subst) < $(srcdir)/test_paths.py.in > $@

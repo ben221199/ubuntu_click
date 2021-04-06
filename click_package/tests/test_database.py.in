@@ -651,10 +651,10 @@ class TestClickDB(TestCase):
             print("root = /custom", file=f)
         with open(os.path.join(self.temp_dir, "99_default.conf"), "w") as f:
             print("[Click Database]", file=f)
-            print("root = /opt/click.ubuntu.com", file=f)
+            print("root = @DEFAULT_ROOT@", file=f)
         db = Click.DB()
         db.read(db_dir=self.temp_dir)
-        self.assertEqual("/opt/click.ubuntu.com", db.props.overlay)
+        self.assertEqual("@DEFAULT_ROOT@", db.props.overlay)
 
     def test_path(self):
         with open(os.path.join(self.temp_dir, "a.conf"), "w") as a:
