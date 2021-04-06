@@ -1,0 +1,14 @@
+Description: Drop IT_PROG_INTLTOOL from configure.ac. Not required, causes FTBFS during configure.
+Author: Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Forwarded: https://gitlab.com/ubports/core/click/-/issues/3
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -8,7 +8,6 @@
+ LT_INIT([disable-static])
+ 
+ AC_SUBST([GETTEXT_PACKAGE], [click])
+-IT_PROG_INTLTOOL
+ 
+ AC_PROG_CC
+ CFLAGS="$CFLAGS -Wall"

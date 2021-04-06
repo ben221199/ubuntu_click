@@ -1,0 +1,5 @@
+etc/click
+lib/systemd
+usr/bin/click
+usr/lib/*/click
+usr/lib/systemd
