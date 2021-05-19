@@ -1,0 +1,1208 @@
+click (0.5.0) UNRELEASED; urgency=medium
+
+  * Release 0.5.0.
+
+ -- Rodney Dawes <dobey@ubports.com>  Wed, 17 Mar 2021 11:00:51 -0400
+
+click (0.4.47+ubports) xenial; urgency=medium
+
+  * Imported to UBports
+
+ -- UBports auto importer <infra@ubports.com>  Mon, 08 Jan 2018 16:50:20 +0000
+
+click (0.4.46+17.10.20170607.3-0ubuntu1) artful; urgency=medium
+
+  * Rename the python package this installs from click to click_package.
+    (LP: #1693226)
+  * Use the correct overlayfs module name for the chroot configuration.
+    (LP: #1696402)
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 07 Jun 2017 18:53:16 +0000
+
+click (0.4.45.1+16.10.20160916-0ubuntu1) yakkety; urgency=medium
+
+  * Kill gpg-agent (if possible) after running debsigs in integration tests.
+  * Copy integration test GPG keyring to a temporary directory so that the
+    GPG agent socket name doesn't end up being too long.
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri, 16 Sep 2016 17:46:25 +0000
+
+click (0.4.45+16.10.20160828.1-0ubuntu1) yakkety; urgency=medium
+
+  * Emit more debugging information when libclickpreload/libgimockpreload
+    fail.
+  * Preload __xmknod rather than mknod (LP: #1615757).
+  * Stop the test suite leaving spurious empty /tmp/gimock* directories
+    around.
+  * Remove stray blank line from click_package_install_hooks test preload
+    annotations.
+  * Link libgimockpreload properly against libclick and several other
+    libraries, and use -Wl,--no-as-needed to stop the linker discarding
+    references to libraries that will be used via dlsym.
+  * Initialise real_* pointers in libgimockpreload more reliably.
+  * Export click_get_user_home for the benefit of the test suite.
+  * Fix click_get_user_home mocks to return bytes rather than text, avoiding
+    obscure crashes in the test suite.
+  * Fix builds on xenial and earlier: build-depending on
+    libpackagekit-glib2-dev (...) | base-files isn't resolved properly by
+    apt, but we can just build-depend on libpackagekit-glib2-dev and let the
+    rest of the build machinery disable use of PackageKit if it's 1.0.0 or
+    newer.
+
+ -- Colin Watson <cjwatson@canonical.com>  Sun, 28 Aug 2016 21:00:53 +0000
+
+click (0.4.44+16.10.20160811.1-0ubuntu1) yakkety; urgency=medium
+
+  [ Colin Watson ]
+  * Handle new policy URL in debsig-verify 0.15. (LP: #1608281)
+
+ -- Timo Jyrinki <timo.jyrinki@canonical.com>  Thu, 11 Aug 2016 10:50:58 +0000
+
+click (0.4.44+16.10.20160810.1-0ubuntu1) yakkety; urgency=medium
+
+  * Add --disable-packagekit to the autopkgtests.
+
+ -- Timo Jyrinki <timo.jyrinki@canonical.com>  Wed, 10 Aug 2016 12:36:49 +0000
+
+click (0.4.44+16.10.20160810-0ubuntu1) yakkety; urgency=medium
+
+  * Don't use @ in debian/tests/control since packagekit plugin is still
+    in debian/control.
+
+ -- Timo Jyrinki <timo.jyrinki@canonical.com>  Wed, 10 Aug 2016 08:21:34 +0000
+
+click (0.4.44+16.10.20160809.1-0ubuntu1) yakkety; urgency=medium
+
+  [ Colin Watson ]
+  * Chase redirection for click.readthedocs.org -> click.readthedocs.io.
+
+  [ Antti Kaijanmäki ]
+  * As PK 1.0 does not support plugins anymore, drop the click plugin.
+    (LP: #1470655, #1496292)
+
+ -- Timo Jyrinki <timo.jyrinki@canonical.com>  Tue, 09 Aug 2016 11:22:15 +0000
+
+click (0.4.43+16.04.20160203-0ubuntu2) xenial; urgency=medium
+
+  * Fix python3-click-package -> python3-click Replaces version
+    (LP: #1544776).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 12 Feb 2016 11:10:43 +0000
+
+click (0.4.43+16.04.20160203-0ubuntu1) xenial; urgency=medium
+
+  [ Colin Watson ]
+  * Fix test skipping in build_core_apps integration tests.
+  * Skip chroot integration tests on architectures that were not present in
+    14.04.
+  * Fix TestChroot.test_exists_no integration test to be more meaningful
+    rather than just testing a command syntax error.
+  * Rename python3-click back to its original name of python3-click-package
+    to get it out of the way of PyPI's "click" package, conflicting with
+    python3-click and python3-click-cli; this is unfortunate and
+    non-compliant with the Python policy, but from that point of view the
+    package that owns the name in the upstream packaging system ought to
+    win.
+
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- Colin Watson <cjwatson@canonical.com>  Wed, 03 Feb 2016 11:17:48 +0000
+
+click (0.4.42+16.04.20151229-0ubuntu1) xenial; urgency=medium
+
+  [ Colin Watson ]
+  * chroot: Point debootstrap at ports.ubuntu.com for non-primary
+    architectures.
+  * Skip build_core_apps integration tests on architectures that lack
+    support for native- or cross-compiling for armhf.
+
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- Colin Watson <cjwatson@canonical.com>  Tue, 29 Dec 2015 01:36:51 +0000
+
+click (0.4.41+16.04.20151211-0ubuntu1) xenial; urgency=medium
+
+  [ Colin Watson ]
+  * Fix spurious test_sync_without_user_db test failure.
+  * Fix test failures under Python 2.
+  * Forbid installing packages with data tarball members whose names do not
+    start with "./" (LP: #1506467).
+  * Take evasive action in case the conflicting "click" package has been
+    installed locally from PyPI (LP: #1486841).
+  * Drop use of apt_pkg from click.install, since it's no longer needed
+    there (LP: #1510015).
+
+  [ Dimitri John Ledkov ]
+  * Require specific Click version, to avoid gi warnings that fail
+    test-suite (LP: #1522608).
+  * Set Vcs-* fields to the actual development branch.
+
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- Colin Watson <cjwatson@canonical.com>  Fri, 11 Dec 2015 01:31:29 +0000
+
+click (0.4.40+15.10.20151006-0ubuntu1.1) wily; urgency=medium
+
+  * SECURITY UPDATE: fix privilege escalation via crafted data.tar.gz that
+    can be used to install alternate security policy than what is defined
+    - click/install.py: Forbid installing packages with data tarball members
+      whose names do not start with "./". Patch thanks to Colin Watson.
+    - CVE-2015-XXXX
+    - LP: #1506467
+
+ -- Jamie Strandboge <jamie@ubuntu.com>  Thu, 15 Oct 2015 11:13:36 -0500
+
+click (0.4.40+15.10.20151006-0ubuntu1) wily; urgency=medium
+
+  [ Michael Vogt ]
+  * Don't follow symlinks when stat()ing files. (LP: 1496976)
+
+  [ Zoltán Balogh ]
+  * Add and pin up the overlay PPA for vivid.
+
+  [ Kyle Fazzari ]
+  * Garbage collect old user registrations. (LP: #1479001)
+
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- Kyle Fazzari <kyle@canonical.com>  Tue, 06 Oct 2015 19:44:52 +0000
+
+click (0.4.39.1+15.10.20150702-0ubuntu1) wily; urgency=medium
+
+  [ Michael Vogt ]
+  * lp:~mvo/click/lp1456328-15.10-devlibs:
+    - add ubuntu-sdk-15.10-dev1
+    - remove ubuntu-core-15.04-dev1
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 02 Jul 2015 11:43:15 +0000
+
+click (0.4.39) vivid; urgency=low
+
+  [ Marco Trevisan (Treviño) ]
+  * handle "IP NOT FOUND" error (LP: #1433234)
+
+  [ Michael Vogt ]
+  * switch the default click chroot framework to ubuntu-sdk-14.04
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 07 May 2015 14:47:11 +0000
+
+click (0.4.38.5) vivid; urgency=medium
+
+  [ Sebastien Bacher ]
+  * Don't try to replace initctl if it's not there (lp: #1430436)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Tue, 10 Mar 2015 18:52:17 +0000
+
+click (0.4.38.4) vivid; urgency=low
+
+  [ Michael Vogt ]
+  * lp:~mvo/click/lp1232130-kill-on-remove-2:
+    - When uninstalling a app, stop it if its running (LP: #1232130)
+  * lp:~mvo/click/dont-crash-for-empty-db:
+    - Do not crash when no database configuration is used and
+      Click.DB.{get,props.overlay,gc,ensure_ownership} are called.
+  * lp:~mvo/click/lp1219912-build-exclude:
+    - add a new --ignore option to click {build,buildsource}
+      (LP: #1219912)
+  * lp:~mvo/click/fix-multiple-framework-validation:
+    - fix framework validation for snappy
+  * run debian/packagekit-check with "sh" as something in jenkins
+    made it mode 0644
+
+  [ CI Train Bot ]
+  * New rebuild forced.
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 26 Feb 2015 17:07:09 +0000
+
+click (0.4.37) vivid; urgency=low
+
+  [ Michael Vogt ]
+  * lp:~mvo/click/no-error-no-missing-systemctl:
+    - fix a spurious error message on systems without systemctl
+  * lp:~mvo/click/do-not-crash-in-build-on-broken-symlinks:
+    - do not crash when building a click package that contains broken
+      symlinks
+  * lp:~mvo/click/dpkg-less-verbose:
+    - do not show dpkg output on install unless --verbose is used
+  * lp:~mvo/click/lp1394256-run-user-hooks:
+    - ensures that click user hooks are run for all logged in users when
+      click is used with "--all-users".
+  * lp:~mvo/click/qt5-qmake-cross-armhf:
+    - add qt5-qmake-arm-linux-gnueabihf to chroot (LP: #1393698)
+  * lp:~mvo/click/chroot-15.04-multiarch:
+    - add ubuntu-sdk-libs-tools and oxide-codecs-extra to the chroot
+  * lp:~mvo/click/lp1394256-run-user-hooks-on-remove-too:
+    - Run the click remove user hooks for all logged in users.
+  * click/chroot.py:
+    - use string.format() for chroot TARGET selection
+  * skip 0.4.36 version and go straight to 0.4.37 (LP: #1418086)
+
+  [ Zoltan Balogh ]
+  * lp:~bzoltan/click/vivid-transition_mirrors:
+    - use geoip to guess the most suitable country mirror when creating
+      the click chroot
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Fri, 13 Feb 2015 14:46:34 +0000
+
+click (0.4.35) vivid; urgency=low
+
+  [ Michael Vogt ]
+  * lp:~mvo/click/add-run-shm:
+    - Ensure /run/shm is available in a click chroot
+  * lp:~mvo/click/ubuntu-core-framework:
+    - Add "ubuntu-core-15.04-dev1" click chroot
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 14 Nov 2014 12:29:14 +0000
+
+click (0.4.34.2) vivid; urgency=medium
+
+  [ Michael Vogt ]
+  * Demote ubuntu-app-launch-tools from a click recommends to a suggests,
+    since they are not needed on server installs.
+  * Use dh-systemd to enable click system and user hook integration
+    (LP: #1379657).
+  * add ubuntu-sdk-15.04 based on ubuntu-sdk-libs/ubuntu-sdk-libs-dev
+  * click/tests/preload.h:
+    - replace deprecated "Attributes:" with annotations on the
+      identifier
+  * click/tests/Makefile.am:
+    - add --libtool to g-ir-scanner so that it uses the generated
+      libtool instead of the system libtool which is now part of
+      the libtool-bin package in vivid
+
+  [ Colin Watson ]
+  * Make "click info" always try opening the input file as a package and
+    only try to interpret it as a file in an installed package if that
+    fails, rather than guessing by the input file extension.
+  * Allow "click chroot install" and "click chroot upgrade" to operate on
+    sessions.
+  
+  [ David Planella ]
+  * Adds internationalization tools and CMake macros required by the
+    new Qt Creator app and scope templates that provide internationalization
+    code.
+
+  [ Pete Woods ]
+  * Include Canonical's cmake-extras project in the schroot.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 03 Nov 2014 12:49:25 +0000
+
+click (0.4.33) utopic; urgency=medium
+
+  [ Pete Woods ]
+  * Add scope-facing APIs to chroot build (LP: #1370727).
+
+  [ Colin Watson ]
+  * Warn that "click install" without a registration may result in later
+    garbage-collection.
+  * Rearrange garbage-collection to remove versions of packages that have no
+    user registrations and are not running, rather than using the artificial
+    @gcinuse registration which never really worked properly.
+  * Run garbage-collection immediately before running system hooks on system
+    startup (LP: #1342858).
+  * Add new -n/--name option to "click chroot", defaulting to "click"
+    (LP: #1364327).
+
+  [ Michael Vogt ]
+  * Make click destroy more robust by unmounting any mounted filesystem
+    inside the schroot first (LP: #1346723).
+  * Stop apps if necessary when uninstalling them (LP: #1232130).
+  * Add new "click framework {info,get-field}" subcommands.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 29 Sep 2014 14:18:41 +0000
+
+click (0.4.32.1) utopic; urgency=low
+
+  [ Michael Vogt ]
+  * fix autopkgtest failure found in 0.4.32
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 09 Sep 2014 10:02:00 +0000
+
+click (0.4.32) utopic; urgency=medium
+
+  [ Daniel Holbach ]
+  * Run click-review after a successful build of a click package. Offer
+    --no-validate as an option.
+
+  [ Colin Watson ]
+  * Move integration tests to a location where they won't end up being
+    installed into inappropriate places on the system module path
+    (LP: #1337696).
+  * Use six.with_metaclass for TestBuildCoreApps, so that it doesn't make
+    pyflakes angry when running tests under Python 2.
+
+  [ Michael Vogt ]
+  * Add more integration tests for "click {list,register,verify,info}".
+  * Only install trusted click packages by default. To override you
+    can run "pkcon --allow-untrusted" (LP: #1360582)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 08 Sep 2014 09:50:43 +0000
+
+click (0.4.31.3) utopic; urgency=medium
+
+  * Reinstate most of 0.4.31.2; instead, just always pass
+    --allow-unauthenticated to "click install" from the PackageKit plugin
+    for now, until we can sort out sideloading (see LP #1360582).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 25 Aug 2014 12:25:21 -0700
+
+click (0.4.31.2.is.0.4.30) utopic; urgency=medium
+
+  * Temporary everting to previous version as the current one makes installing
+    click packages locally through pkcon install-local impossible, which is
+    breaking some other projects relying on this functionality. Needs to be
+    revisited.
+
+ -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>  Mon, 25 Aug 2014 17:34:07 +0200
+
+click (0.4.31.2) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Add "click info" interface to get manifest corresponding to file in
+    installed package (LP: #1324853).
+  * Add support for click package gpg signatures (LP: #1330770).
+
+  [ Colin Watson ]
+  * Ugly hack to get coverage reporting working again with gcovr 3.1.
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 22 Aug 2014 17:19:06 +0000
+
+click (0.4.30) utopic; urgency=medium
+
+  [ Colin Watson ]
+  * Add many more unit tests to fill in some gaps in the coverage report.
+  
+  [ Michael Vogt ]
+  * Exclude non-existing users from User.get_user_names() 
+    (LP: #1334611)
+
+  [ Zoltan Balogh ]
+  * Add a set of APIs to the 14.10 frameworks.  Add ubuntu-ui-toolkit-doc to
+    all frameworks.
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 06 Aug 2014 23:33:22 +0000
+
+click (0.4.29.1) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Trivial fix for the current autopkgtest failure.  The ADT environment
+    does not have the USER environment set.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 04 Jul 2014 15:10:01 +0000
+
+click (0.4.29) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Refactor click/chroot.py and improve tests.
+  * Test-build two ubuntu-system-apps in a click chroot as part of the
+    integration tests.
+  * Generalise handling of -devN frameworks in "click chroot".
+  * Add integration test for "click hook install".
+
+  [ Colin Watson ]
+  * Various adjustments for improved PEP-8 compliance.
+  * Produce coverage only on request via ./configure --enable-gcov.  Extend
+    it to cover C code as well, and produce a merged coverage.xml.
+
+  [ Brendan Donegan ]
+  * Clean up integration tests - have one file per command and make some
+    things clearer.
+
+  [ Dimitri John Ledkov ]
+  * Seed runtime target arch SDK app launcher, to enable remote debugging.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 03 Jul 2014 13:10:21 +0000
+
+click (0.4.28) utopic; urgency=medium
+
+  [ Colin Watson ]
+  * Revert change in 0.4.27 to raise an error if no databases are added;
+    this makes most of libclick unusable if click is not installed.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 23 Jun 2014 16:07:37 +0000
+
+click (0.4.27) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Fix failing autopkgtests.
+  * Refactor the integration tests to be more modular.  Add installation
+    integration tests based on
+    https://wiki.ubuntu.com/Process/Merges/TestPlan/click.
+  * Add integration tests for buildsource, pkgdir and framework.
+
+  [ Dimitri John Ledkov ]
+  * Handle renaming of qtsensors5-dev to libqt5sensors5-dev in Qt 5.3.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 23 Jun 2014 11:31:50 +0000
+
+click (0.4.26.1) utopic; urgency=medium
+
+  [ Colin Watson ]
+  * Fix a pyflakes complaint.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 10 Jun 2014 18:04:12 +0000
+
+click (0.4.26) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Add basic integration tests, run via autopkgtest.
+  * Add coverage testing.
+
+  [ Colin Watson ]
+  * Fix DEB_BUILD_* environment variables when building on amd64 for i386
+    (LP: #1328486).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 10 Jun 2014 19:02:33 +0100
+
+click (0.4.25) utopic; urgency=medium
+
+  [ Ted Gould ]
+  * Check for ubuntu-app-launch-desktop hook (LP: #1326694).
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 05 Jun 2014 18:18:50 +0000
+
+click (0.4.24) utopic; urgency=medium
+
+  [ Loïc Minier ]
+  * Add 14.10 framework in places where all frameworks are listed.
+
+  [ Colin Watson ]
+  * Copy the pw_uid and pw_gid members from getpwnam's return value and
+    cache those separately, since getpwnam returns a pointer to a static
+    buffer so just caching its return value is not useful (LP: #1323998).
+  * Handle the renaming of upstart-app-launch to ubuntu-app-launch: we now
+    cope with both old and new names.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 04 Jun 2014 08:37:18 +0000
+
+click (0.4.23.1) utopic; urgency=medium
+
+  [ Colin Watson ]
+  * chroot: Force dpkg-architecture to recalculate everything rather than
+    picking up values from the environment, to avoid the test suite getting
+    confused by environment variables exported by dpkg-buildpackage.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 20 May 2014 13:15:41 +0000
+
+click (0.4.23) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Show human-readable error message when a click chroot subcommand fails
+    because of existing or non-existing chroots (LP: #1296820).
+  * Selectively disable logging on some tests to avoid message spam during
+    the test runs.
+  * When running hooks, remove hook symlinks if framework requirements are
+    not met (LP: #1271944).
+  * Cleanup the chroot if "click chroot create" fails (unless 
+    --keep-broken-chroot is used)
+  * Fix sources.list generation when native_arch and target_arch are on the
+    same archive server (part of LP #1319153).
+  * Add "click framework list" command to list available frameworks
+    (LP: #1294659).
+
+  [ Pete Woods ]
+  * Add libunity-scopes-dev package to chroot (LP: #1320786).
+
+  [ Sergio Schvezov ]
+  * click chroot creation depends on dpkg-architecture, so recommend
+    dpkg-dev.
+
+  [ Colin Watson ]
+  * chroot: Handle the case where we can execute binaries for the target
+    architecture directly and thus don't need a cross-compiler
+    (LP: #1319153).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 20 May 2014 14:10:11 +0100
+
+click (0.4.22) utopic; urgency=medium
+
+  [ Michael Vogt ]
+  * Update documentation for building the project.
+  * Add support for multiple frameworks (LP: #1318757).
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 14 May 2014 06:28:34 +0000
+
+click (0.4.21.1) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * When a hook command fails, include the command in the error message.
+  * Don't allow failure of a single hook to prevent other hooks being run.
+  * Log hook failures to stderr and exit non-zero, rather than propagating
+    an exception which is then logged as a click crash.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 08 Apr 2014 09:41:55 +0000
+
+click (0.4.21) trusty; urgency=medium
+
+  * Add *_as_string variants of manifest methods, for clients that already
+    have their own JSON parsing libraries and don't want to use JSON-GLib.
+  * Write to stderr and exit non-zero when chrooted commands fail, rather
+    than propagating an exception which is then logged as a click crash
+    (LP: #1298457).
+  * Make the get_manifests family of functions log errors about individual
+    manifests to stderr rather than crashing (LP: #1297519).
+  * Don't run user hooks until dbus has started; the content-hub hook needs
+    to modify gsettings.
+  * Don't rely on PyGObject supporting default None arguments; this was only
+    added in 3.11.1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 08 Apr 2014 10:13:37 +0100
+
+click (0.4.20) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * Create system hook symlinks for all installed packages, not just current
+    versions.  This avoids missing AppArmor profiles when there are
+    unregistered user-installed versions of packages lying around.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 24 Mar 2014 16:16:37 +0000
+
+click (0.4.19) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * Set Click.User.ensure_db visibility back to private, since it's no
+    longer used by Click.Hook.  (The C ABI is unaffected.)
+  * Add brief documentation on Click's multiple-database scheme, based on my
+    recent mail to ubuntu-phone.
+  * Fix a few potential GLib critical messages from the PackageKit plugin.
+  * Make libclick-0.4-dev depend on libjson-glib-dev for
+    <json-glib/json-glib.h>.
+  * Add Requires.private to click-0.4.pc, so that programs built against
+    libclick pick up the proper CFLAGS including glib and json-glib.
+  * chroot: Allow creating 14.04 chroots.
+  * Include _directory and _removable dynamic manifest keys in "click info"
+    output (LP: #1293788).
+  * Document -f and -s options to "click chroot" in click(1).
+  * chroot: Fix code to make /finish.sh executable.
+  * chroot: Make /usr/sbin/policy-rc.d executable in the chroot, as
+    otherwise it has no effect.
+  * chroot: Run apt-get dist-upgrade on the chroot before trying to install
+    the basic build tool set.  Fixes chroot creation for saucy.
+
+  [ Benjamin Zeller ]
+  * Take pkexec env vars into account when creating a chroot.
+
+  [ Dimitri John Ledkov ]
+  * Add session management to click chroot.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 18 Mar 2014 14:27:53 +0000
+
+click (0.4.18.3) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * Take a slightly different approach to fixing "click hook run-user": only
+    try to update user registration symlinks if they already exist in the
+    overlay database.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 12 Mar 2014 12:02:47 +0000
+
+click (0.4.18.2) trusty; urgency=medium
+
+  * Make "click hook run-user" ensure that the user registration directory
+    exists before dropping privileges and trying to create symlinks in it
+    (LP: #1291192).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 12 Mar 2014 11:59:31 +0000
+
+click (0.4.18.1) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * If a user attempts to install a version of a package that is already
+    installed in an underlay database, then just register the appropriate
+    version for them rather than unpacking another copy.
+  * Make "click hook run-system" and "click hook run-user" consistently use
+    the bottom-most unpacked copy of a given version of a package, and
+    update hook symlinks and user registration symlinks if necessary.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 11 Mar 2014 17:22:10 +0000
+
+click (0.4.18) trusty; urgency=medium
+
+  * Give gir1.2-click-0.4 an exact-versioned dependency on libclick-0.4-0.
+  * Use is_symlink helper method in a few more places.
+  * Add a similar is_dir helper method.
+  * Ignore extraneous non-directories when walking a database root in
+    Click.DB.get_packages and Click.DB.gc.
+  * Make the PackageKit plugin tolerate the "_removable" dynamic manifest
+    key being changed to a boolean in the future.
+  * Document that users of "_removable" should tolerate it being a boolean.
+  * Use libclick when removing packages, listing packages, or searching
+    packages via the PackageKit plugin.
+  * Add libclick interfaces to get package manifests, both individually
+    (LP: #1287692) and for all installed packages (LP: #1287693).
+  * Override description-starts-with-package-name Lintian error for click;
+    this is describing the system as a whole rather than naming the package.
+  * Add libclick interfaces to get the list of frameworks supported by the
+    current system (LP: #1271633) and various properties of those frameworks
+    (LP: #1287694).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 11 Mar 2014 17:18:07 +0000
+
+click (0.4.17.2) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * Fix Click.User construction in "click pkgdir".
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 06 Mar 2014 16:38:35 +0000
+
+click (0.4.17.1) trusty; urgency=medium
+
+  * gobject-introspection-1.0.pc is in libgirepository1.0-dev, not
+    gobject-introspection.  Fix Build-Depends.
+  * Build-depend and depend on gir1.2-glib-2.0 and python3-gi.
+  * Map gboolean to ctypes.c_int, not ctypes.c_bool.  gboolean and gint are
+    the same as far as glib is concerned, and ctypes does strange things
+    with its bool type in callbacks.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Mar 2014 16:09:33 +0000
+
+click (0.4.17) trusty; urgency=medium
+
+  * Use full path to click in Upstart jobs to save a $PATH lookup.
+  * Add systemd units to run Click system and user hooks at the appropriate
+    times.  We probably won't be using these for a while, but it does no
+    harm to add them.
+  * Move an initial core of functionality (database, hooks, osextras, query,
+    user) from Python into a new "libclick" library, allowing
+    performance-critical clients to avoid the cost of starting a new Python
+    interpreter (LP: #1282311).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 06 Mar 2014 14:35:26 +0000
+
+click (0.4.16) trusty; urgency=medium
+
+  [ Colin Watson ]
+  * hooks: Fix expansion of "$$" in hook patterns to conform to the
+    documented behaviour of expanding to the single character "$".
+  * Move version detection out of configure.ac into a separate get-version
+    script, since intltool-update has trouble with the previous approach.
+  * Stop using unittest2 if available; the relevant improvements were
+    integrated into the standard library's unittest in Python 2.7, and we no
+    longer support 2.6.
+  * user: When setting the registered version of a package to the version in
+    an underlay database (e.g. a preinstalled version vs. one in the
+    user-installed area), remove the overlay link rather than setting a new
+    one equal to the underlay; this was always the intended behaviour but
+    didn't work that way due to a typo.
+  * Add Python 3.4 to list of tested versions.
+  * Call setup.py from the top-level Makefile.am rather than from
+    debian/rules, to make the build system a bit more unified.
+  * Drop AM_GNU_GETTEXT and call intltoolize before autoreconf in
+    autogen.sh; this fixes a bug whereby "make" after "./configure" always
+    immediately needed to run aclocal.
+  * Build-depend on python3-pep8 so that test_pep8_clean doesn't need to be
+    skipped when running under Python 3.  This can safely be removed for
+    backports to precise.
+  * Simplify click -> python3-click dependency given that both are
+    Architecture: any.
+  * Tighten packagekit-plugin-click -> click dependency to require a
+    matching version.
+  * Use dh_install --fail-missing to avoid future mistakes.
+  * Sync up substvar use with what debhelper actually generates for us: add
+    ${misc:Pre-Depends} to click and packagekit-plugin-click, and remove
+    ${python3:Depends} from click-dev.
+  * Reset SIGPIPE handling from Python's default of raising an exception to
+    the Unix default of terminating the process (LP: #1285790).
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 04 Mar 2014 15:23:45 +0000
+
+click (0.4.15) trusty; urgency=medium
+
+  [ Stéphane Graber ]
+  * Set X-Auto-Uploader to no-rewrite-version
+  * Set Vcs-Bzr to the new target branch
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 30 Jan 2014 16:12:17 +0000
+
+click (0.4.14) trusty; urgency=low
+
+  [ Colin Watson ]
+  * chroot: Print help if no subcommand given (LP: #1260669).
+  * chroot: Recommend debootstrap from click-dev, and explicitly check for
+    it in "click chroot create" (LP: #1260487).
+  * chroot: Check for root in "create" and "destroy" (LP: #1260671).
+  * hooks: Add a ${short-id} expansion to hook patterns; this is valid only
+    in user-level or single-version hooks, and expands to a new "short
+    application ID" without the version (LP: #1251635).
+  * hooks: Strip any trailing slashes from the end of patterns, as they
+    cause confusion with symlink-to-directory semantics and can never be
+    useful (LP: #1253855).
+  * install: Extend the interpretation of "framework" a little bit to allow
+    a Click package to declare that it requires multiple frameworks.  This
+    will allow splitting up the SDK framework declarations into more
+    fine-grained elements.
+  * Policy version 3.9.5: no changes required.
+  * build: Enforce only a single framework declaration for now, by request.
+
+  [ Zoltan Balogh ]
+  * Add qtmultimedia5-dev to the SDK framework list.
+
+  [ Dimitri John Ledkov ]
+  * chroot: Add "cmake" to build_pkgs, as it is expected for cmake to be
+    available on any (Ubuntu) framework.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 23 Jan 2014 17:30:54 +0000
+
+click (0.4.13) trusty; urgency=low
+
+  [ Robert Bruce Park ]
+  * Ignore click packages when building click packages.
+
+  [ Colin Watson ]
+  * If "click build" or "click buildsource" is given a directory as the
+    value of its -m/--manifest option, interpret that as indicating the
+    "manifest.json" file in that directory (LP: #1251604).
+  * Ensure correct permissions on /opt/click.ubuntu.com at boot, since a
+    system image update may have changed clickpkg's UID/GID (LP: #1259253).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 10 Dec 2013 14:33:42 +0000
+
+click (0.4.12) trusty; urgency=low
+
+  [ Colin Watson ]
+  * Adjust top-level "click help" entry for "install" to point to pkcon.
+  * Fix hook installation tests to test Unicode manifests properly.
+  * Read version and date from debian/changelog when building documentation.
+  * Declare click-dev Multi-Arch: foreign (LP: #1238796).
+  * Build-depend on python3:any/python3-all:any rather than
+    python3/python3-all.
+
+  [ Brian Murray, Colin Watson ]
+  * Add chroot management support.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 21 Nov 2013 14:46:16 +0000
+
+click (0.4.11) saucy; urgency=low
+
+  * Drop --force-missing-framework from PackageKit plugin now that
+    /usr/share/click/frameworks/ubuntu-sdk-13.10.framework is in
+    ubuntu-sdk-libs.
+  * Show a neater error message when a package's framework is not installed
+    (LP: #1236671).
+  * Show a neater error message when building a package whose manifest file
+    cannot be parsed (LP: #1236669).
+  * Show a neater error message when running "click install" with
+    insufficient privileges (LP: #1236673).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 11 Oct 2013 12:07:06 +0100
+
+click (0.4.10) saucy; urgency=low
+
+  * When removing packages, only drop privileges after ensuring the
+    existence of the database directory (LP: #1233280).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Sep 2013 18:12:14 +0100
+
+click (0.4.9) saucy; urgency=low
+
+  * Explicitly build-depend on pkg-config, since it's needed even if the
+    PackageKit/GLib-related build-dependencies are removed for backporting.
+  * Remove some stray documentation references to Ubuntu 13.04.
+  * Ensure that the user's overlay database directory exists when
+    unregistering a preinstalled package (LP: #1232066).
+  * Support packages containing code for multiple architectures, and
+    document the "architecture" manifest field (LP: #1214380, #1214864).
+  * Correctly pass through return values of commands as the exit status of
+    the "click" wrapper.
+  * Extend "click info" to take a registered package name as an alternative
+    to a path to a Click package file (LP: #1232118).
+  * Force unpacked files to be owner-writeable (LP: #1232128).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 30 Sep 2013 15:24:49 +0100
+
+click (0.4.8) saucy; urgency=low
+
+  * Show a proper error message if "click build" or "click buildsource" is
+    called on a directory that does not exist or does not contain a manifest
+    file, rather than crashing (LP: #1228619).
+  * Restore missing newlines after JSON dumps in "click info" and "click
+    list --manifest".
+  * Tidy up use of PackageKit IDs; local:click should refer to uninstalled
+    packages, while installed:click refers to installed packages.
+  * Expose application names and whether a package is removable via the
+    PackageKit API: the IDs of installed applications are now formed as
+    comma-separated key/value pairs, e.g.
+    "installed:click,removable=1,app_name=foo,app_name=bar" (LP: #1209329).
+  * Rename ClickUser.__setitem__ to ClickUser.set_version and
+    ClickUser.__delitem__ to ClickUser.remove; with multiple databases it
+    was impossible for these methods to fulfil the normal contract for
+    mutable mappings, since deleting an item might simply expose an item in
+    an underlying database.
+  * Allow unregistering preinstalled packages.  A preinstalled package
+    cannot in general actually be removed from disk, but unregistering it
+    for a user records it as being hidden from that user's list of
+    registered packages.  Reinstalling the same version unhides it.
+  * Consolidate ClickInstaller.audit_control into ClickInstaller.audit.
+  * Validate the shipped md5sums file in "click verify" (LP: #1217333).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 24 Sep 2013 15:21:48 +0100
+
+click (0.4.7) saucy; urgency=low
+
+  * Run system hooks when removing a package from the file system
+    (LP: #1227681).
+  * If a hook symlink is already correct, don't unnecessarily remove and
+    recreate it.
+  * Improve "click hook install-system" and "click hook install-user" to
+    remove any stale symlinks they find, and to run Exec commands only once
+    per hook.  This significantly speeds up system and session startup when
+    lots of applications are installed (LP: #1227604).
+  * Rename "click hook install-system" and "click hook install-user" to
+    "click hook run-system" and "click hook run-user" respectively, to
+    better fit their semantics.  (I expect these commands only to have been
+    used internally by click's own Upstart jobs.)
+  * Filter version control metadata and editor backup files out of binary
+    packages in "click build" (LP: #1223640).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 20 Sep 2013 18:07:13 +0100
+
+click (0.4.6) saucy; urgency=low
+
+  * Make sure all unpacked files and directories are group- and
+    world-readable, and (if owner-executable) also group- and
+    world-executable (LP: #1226553).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 17 Sep 2013 13:37:06 +0100
+
+click (0.4.5) saucy; urgency=low
+
+  * Document --force-missing-framework option in the error message produced
+    when a package's required framework is not present.
+  * Make "click pkgdir" exit 1 if a directory for the given package name or
+    path is not found, rather than letting the exception propagate
+    (LP: #1225923).
+  * Run system hooks at boot time, in particular so that AppArmor profiles
+    for packages in /custom are generated and loaded (LP: #1223085).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 16 Sep 2013 20:55:28 +0100
+
+click (0.4.4) saucy; urgency=low
+
+  * Amend "click help install" to recommend using "pkcon install-local".
+  * Run hooks when removing a per-user package registration.
+  * Adjust usage lines for "click help verify" and "click help pkgdir" to
+    indicate that options are allowed.
+  * Add a click(1) manual page.
+  * Use json.dump and json.load in most places rather than json.dumps and
+    json.loads (which unnecessarily construct strings).
+  * Add "click unregister", which unregisters a package for a user and
+    removes it from disk if it is not being used.
+  * Add RemovePackage support to the PackageKit plugin, mapped to "click
+    unregister".
+  * Attempt to remove the old version of a package after installing or
+    registering a new one.
+  * Remove code supporting PackageKit 0.7 API, and instead arrange to
+    disable the PackageKit plugin if the new API is not available, since we
+    don't need to build it on Ubuntu 12.04 LTS.
+  * Report errors from click subprocesses in PackageKit plugin
+    (LP: #1218483).
+  * Implement PackageKit search by name and by details.
+  * Reserve manifest keys starting with an underscore for use as dynamic
+    properties of installed packages.
+  * Add the dynamic key "_directory" to "click list --manifest" output,
+    showing the directory where each package is unpacked (LP: #1221760).
+  * Add the dynamic key "_removable" to "click list --manifest" output,
+    which is 1 if a package is unpacked in a location from which it can be
+    removed, otherwise 0.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 09 Sep 2013 13:37:39 +0100
+
+click (0.4.3) saucy; urgency=low
+
+  * Add support for multiple installation root directories, configured in
+    /etc/click/databases/.  Define /usr/share/click/preinstalled,
+    /custom/click, and /opt/click.ubuntu.com by default.
+  * Add --all-users option to "click install" and "click register": this
+    registers the installed package for a special pseudo-user "@all", making
+    it visible to all users.
+  * Add "click hook install-user", which runs all user-level hooks for all
+    packages for a given user.  This is useful at session startup to catch
+    up with packages that may have been preinstalled and registered for all
+    users.
+  * Run "click hook install-user" on session startup from an Upstart user
+    job.
+  * Avoid calling "click desktophook" if
+    /usr/share/click/hooks/upstart-app-launch-desktop.hook exists.
+  * Force umask to a sane value when dropping privileges (022 for clickpkg,
+    current-umask | 002 for other users; LP: #1215480).
+  * Use aa-exec-click rather than aa-exec in .desktop files generated by
+    "click desktophook" (LP: #1197047).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 04 Sep 2013 17:01:58 +0100
+
+click (0.4.2) saucy; urgency=low
+
+  * Suppress dpkg calls to lchown when not running as root (LP: #1220125).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 03 Sep 2013 10:12:29 +0100
+
+click (0.4.1) saucy; urgency=low
+
+  [ Sergio Schvezov ]
+  * Compare mtimes for desktop files, not stat objects.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 02 Sep 2013 14:54:49 +0100
+
+click (0.4.0) saucy; urgency=low
+
+  [ Colin Watson ]
+  * Add "installed-size" as a mandatory field in the control area's
+    "manifest" file; it should not be present in source manifest files, and
+    is generated automatically by "click build".
+  * Add an optional "icon" manifest key.
+  * Consistently call clickpreload_init from preloaded functions in case
+    they happen to be called before libclickpreload's constructor.
+  * Run dpkg with --force-bad-path so that /sbin and /usr/sbin are not
+    required to be on $PATH; we don't use the tools dpkg gets from there.
+
+  [ Loïc Minier ]
+  * Add fopen64 wrapper (LP: #1218674).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 30 Aug 2013 17:59:34 +0100
+
+click (0.3.4) saucy; urgency=low
+
+  * Make "click desktophook" tolerate dangling symlinks in
+    ~/.local/share/applications/.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 28 Aug 2013 18:00:55 +0200
+
+click (0.3.3) saucy; urgency=low
+
+  * Recommend click-apparmor from click (suggested by Jamie Strandboge).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 28 Aug 2013 12:17:23 +0200
+
+click (0.3.2) saucy; urgency=low
+
+  [ Jamie Strandboge ]
+  * Document maintainer as an optional field.
+
+  [ Matthias Klumpp ]
+  * Support PackageKit 0.8 API.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 27 Aug 2013 21:07:02 +0200
+
+click (0.3.1) saucy; urgency=low
+
+  [ Colin Watson ]
+  * Fix some more failures with mock 0.7.2.
+  * Work around the lack of a python-apt backport of
+    apt_pkg.TagFile(sequence, bytes=True) to precise.
+
+  [ Jamie Strandboge ]
+  * Codify allowed characters for "application ID".
+  * Fix typos in apparmor hook example.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 13 Aug 2013 10:10:11 +0200
+
+click (0.3.0) saucy; urgency=low
+
+  * Insert a new "_click-binary" ar member immediately after
+    "debian-binary"; this allows detecting the MIME type of a Click package
+    even when it doesn't have the extension ".click" (LP: #1205346).
+  * Declare the application/x-click MIME type, since the shared-mime-info
+    upstream would rather not take the patch there at this point
+    (https://bugs.freedesktop.org/show_bug.cgi?id=66689).
+  * Make removal of old links for single-version hooks work even when the
+    application ID is not a prefix of the pattern's basename.
+  * Add an optional Hook-Name field to hook files, thereby allowing multiple
+    hooks to attach to the same virtual name.
+  * Rename click's own "desktop" hook to "click-desktop", making use of the
+    new Hook-Name facility.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 06 Aug 2013 11:08:46 +0100
+
+click (0.2.10) saucy; urgency=low
+
+  * Force click's stdout encoding to UTF-8 regardless of the locale.
+  * Don't encode non-ASCII characters in JSON dumps.
+  * Treat manifests as UTF-8.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 30 Jul 2013 15:14:16 +0100
+
+click (0.2.9) saucy; urgency=low
+
+  * Tolerate dangling source symlinks in "click desktophook".
+  * Handle the case where the clickpkg user cannot read the .click file,
+    using some LD_PRELOAD trickery to allow passing it as a file descriptor
+    opened by the privileged process (LP: #1204523).
+  * Remove old links for single-version hooks when installing new versions
+    (LP: #1206115).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 29 Jul 2013 16:56:42 +0100
+
+click (0.2.8) saucy; urgency=low
+
+  * Check in advance whether the root is writable by the clickpkg user, not
+    just by root, and do so in a way less vulnerable to useful exception
+    text being eaten by a subprocess preexec_fn (LP: #1204570).
+  * Actually install
+    /var/lib/polkit-1/localauthority/10-vendor.d/com.ubuntu.click.pkla in
+    the packagekit-plugin-click binary package.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 25 Jul 2013 17:40:49 +0100
+
+click (0.2.7) saucy; urgency=low
+
+  * Fix error message when rejecting "_" from a package name or version
+    (LP: #1204560).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 24 Jul 2013 16:42:59 +0100
+
+click (0.2.6) saucy; urgency=low
+
+  * Adjust written .desktop files to avoid tickling some bugs in Unity 8's
+    parsing.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 24 Jul 2013 08:03:08 +0100
+
+click (0.2.5) saucy; urgency=low
+
+  * Ensure that ~/.local/share/applications exists if we need to write any
+    .desktop files.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 24 Jul 2013 07:44:44 +0100
+
+click (0.2.4) saucy; urgency=low
+
+  * Mangle Icon in .desktop files to point to an absolute path within the
+    package unpack directory if necessary.
+  * Add a "--" separator between aa-exec's options and the subsidiary
+    command, per Jamie Strandboge.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Jul 2013 23:38:29 +0100
+
+click (0.2.3) saucy; urgency=low
+
+  * Set Path in generated .desktop files to the top-level package directory.
+  * Revert part of geteuid() change in 0.2.2; ClickUser._drop_privileges and
+    ClickUser._regain_privileges need to check the real UID, or else they
+    will never regain privileges.
+  * When running a hook, set HOME to the home directory of the user the hook
+    is running as.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Jul 2013 22:57:03 +0100
+
+click (0.2.2) saucy; urgency=low
+
+  * dh_click: Support --name option.
+  * Avoid ClickUser.__iter__ infecting its caller with dropped privileges.
+  * Use geteuid() rather than getuid() in several places to check whether we
+    need to drop or regain privileges.
+  * Add a user-level hook to create .desktop files in
+    ~/.local/share/applications/.  (This should probably move to some other
+    package at some point.)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 23 Jul 2013 19:36:44 +0100
+
+click (0.2.1) saucy; urgency=low
+
+  * Fix "click help list".
+  * Remove HOME from environment when running dpkg, so that it doesn't try
+    to read .dpkg.cfg from it (which may fail when dropping privileges from
+    root and produce a warning message).
+  * Refuse to install .click directories at any level, not just the top.
+  * Add "click pkgdir" command to print the top-level package directory from
+    either a package name or a path within a package; based on work by Ted
+    Gould, for which thanks.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 22 Jul 2013 09:36:19 +0100
+
+click (0.2.0) saucy; urgency=low
+
+  * Revise and implement hooks specification.  While many things have
+    changed, the previous version was never fully implemented.  However, I
+    have incremented the default Click-Version value to 0.2 to reflect the
+    design work.
+    - The "hooks" manifest key now contains a dictionary keyed by
+      application name.  This means manifest authors have to repeat
+      themselves much less in common cases.
+    - There is now an explicit distinction between system-level and
+      user-level hooks.  System-level hooks may reflect multiple concurrent
+      versions, and require a user name.
+    - Hook symlinks are now named by a combination of the Click package
+      name, the application name, and the Click package version.
+    - The syntax of Pattern has changed to make it easier to extend with new
+      substitutions.
+  * Reject '_' and '/' characters in all of package name, application name,
+    and package version.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 19 Jul 2013 13:11:31 +0100
+
+click (0.1.7) saucy; urgency=low
+
+  * Correct name of .pkla file (now
+    /var/lib/polkit-1/localauthority/10-vendor.d/com.ubuntu.click.pkla).
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 18 Jul 2013 17:00:46 +0100
+
+click (0.1.6) saucy; urgency=low
+
+  * Move defaults for frameworks and hooks directories to click.paths.
+  * Install /var/lib/polkit-1/localauthority/10-vendor.d/10-click.pkla to
+    allow the phablet user to install Click packages without being known to
+    logind, as a temporary workaround.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 18 Jul 2013 16:55:08 +0100
+
+click (0.1.5) saucy; urgency=low
+
+  * Fix infinite recursion in ClickUser.click_pw.
+  * When all the files requested for installation are Click packages,
+    override org.freedesktop.packagekit.package-install* PolicyKit actions
+    to com.ubuntu.click.package-install, defined with a more open default
+    policy.  (This requires some backports to PackageKit, not in the archive
+    yet.)
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Wed, 17 Jul 2013 15:46:48 +0100
+
+click (0.1.4) saucy; urgency=low
+
+  * Add support for per-user package registration.
+  * Move install log file from $root/.click.log to $root/.click/log.
+  * Add an autotools-based build system for our C components.
+  * Initial version of a PackageKit plugin, in a new packagekit-plugin-click
+    package; still experimental.
+  * Restore compatibility with Python 3.2 (LP: #1200670).
+  * Adjust tests to pass with mock 0.7.2 (as in Ubuntu 12.04 LTS).
+  * Make the default root directory a configure option.
+  * Add a simple "click list" command.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 15 Jul 2013 15:55:48 +0100
+
+click (0.1.3) saucy; urgency=low
+
+  * Rename to click, per Mark Shuttleworth.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 27 Jun 2013 15:57:25 +0100
+
+click-package (0.1.2) saucy; urgency=low
+
+  * Disable dh_sphinxdoc for builds that are not building
+    architecture-independent packages.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Jun 2013 18:57:47 +0100
+
+click-package (0.1.1) saucy; urgency=low
+
+  * clickpackage.tests.test_install: Set NO_PKG_MANGLE when building fake
+    packages, to avoid having Maintainer fields mangled on the buildds.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 25 Jun 2013 17:32:00 +0100
+
+click-package (0.1) saucy; urgency=low
+
+  * Initial release.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 24 Jun 2013 14:43:21 +0100

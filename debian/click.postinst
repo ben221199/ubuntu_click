@@ -1,0 +1,23 @@
+#! /bin/sh
+set -e
+
+if [ "$1" = configure ]; then
+	if ! getent passwd clickpkg >/dev/null; then
+		adduser --quiet --system --home /nonexistent --no-create-home \
+			--disabled-password --shell /bin/false --group \
+			clickpkg
+	fi
+
+	mkdir -p -m 755 /opt/click.ubuntu.com
+	chown clickpkg:clickpkg /opt/click.ubuntu.com
+
+	# dh-systemd has no support yet for user systemd units
+	# so we need to do this manually here
+        if which systemctl >/dev/null 2>&1; then
+	    systemctl --global enable click-user-hooks.service || true
+        fi
+fi
+
+#DEBHELPER#
+
+exit 0
