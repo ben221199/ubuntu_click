@@ -113,6 +113,7 @@ AC_CONFIG_FILES([
 	Makefile
 	click_package/Makefile
 	click_package/tests/Makefile
+	click_package/tests/integration/Makefile
 	click_package/tests/config.py
 	conf/Makefile
 	conf/databases/Makefile
