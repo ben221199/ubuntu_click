@@ -20,6 +20,7 @@ Build-Depends:
  python3-coverage,
  python3-debian,
  python3-gi,
+ python3-pip,
  python3-pep8,
  python3-setuptools,
  python3-six,
@@ -27,7 +28,7 @@ Build-Depends:
  python3:any (>= 3.2),
  python3:any (>= 3.3) | python3-mock,
  valac,
-Standards-Version: 4.5.1
+Standards-Version: 4.6.0
 Rules-Requires-Root: no
 Homepage: https://gitlab.com/ubports/core/click/
 Vcs-Git: https://salsa.debian.org/ubports-team/click.git
