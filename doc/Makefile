@@ -7,6 +7,19 @@ SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
 
+# click-specific variable
+DEFAULT_ROOT  = /opt/click.ubuntu.com
+
+# click-specific targets
+subst: SHELL:=/bin/bash
+subst:
+	for file in *.rst.in; do sed -e "s,[@]DEFAULT_ROOT[@],$(DEFAULT_ROOT),g" > $${file/.rst.in/.rst} < $${file}; done
+
+subst-clean: SHELL:=/bin/bash
+subst-clean:
+	for file in *.rst.in; do rm -f $${file/.rst.in/.rst}; done
+# end of click-specific targets
+
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
