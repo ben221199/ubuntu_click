@@ -1,3 +1,11 @@
+click (0.5.0-3) unstable; urgency=medium
+
+  * d/t/control:
+    + Fix libclick-dev dependency.
+    + Drop gir1.2-click-0.4, gets pulled-in with libclick-dev.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Wed, 08 Dec 2021 17:20:22 +0100
+
 click (0.5.0-2) unstable; urgency=medium
 
   * Upload to unstable.
