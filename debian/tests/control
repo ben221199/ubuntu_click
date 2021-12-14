@@ -6,6 +6,7 @@ Depends:
  debsig-verify,
  debsigs,
  iputils-ping,
+ kmod,
  libclick-dev,
  python3-click-package,
  python3-six,
