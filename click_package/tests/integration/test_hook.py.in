@@ -74,7 +74,7 @@ class TestHook(ClickTestCase):
         self.assertTrue(os.path.exists(generated_hook_file))
         self.assertEqual(
             os.path.realpath(generated_hook_file),
-            "/opt/click.ubuntu.com/com.example.hook-1/1.0/README")
+            "@DEFAULT_ROOT@/com.example.hook-1/1.0/README")
         with open(hook_log) as f:
             hook_log_content = f.read().strip()
         self.assertEqual("i-hook-you-up", hook_log_content)

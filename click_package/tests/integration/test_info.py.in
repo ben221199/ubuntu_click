@@ -51,7 +51,7 @@ class TestInfo(ClickTestCase):
             [self.click_binary, "unregister", "--all-users", name])
         output = subprocess.check_output(
             [self.click_binary, "info",
-             "/opt/click.ubuntu.com/%s/%s/README" % (name, version)],
+             "@DEFAULT_ROOT@/%s/%s/README" % (name, version)],
             universal_newlines=True)
         self.assertEqual(name, json.loads(output)["name"])
 
