@@ -484,6 +484,7 @@ class TestClickSingleDB(TestCase):
             lambda ver, path, buf: side_effect(
                 "__xstat64", limit, ver, path, buf))
 
+    @skip("See https://gitlab.com/ubports/core/click/-/issues/5")
     def test_ensure_ownership_quick_if_correct(self):
         def stat_side_effect(name, limit, ver, path, buf):
             st = self.convert_stat_pointer(name, buf)
