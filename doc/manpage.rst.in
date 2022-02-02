@@ -247,7 +247,7 @@ know the calling user.)
 it will be available to all users by default.  When doing this, you should
 normally install it to one of the databases defined in
 ``/etc/click/databases/`` other than the default of
-``/opt/click.ubuntu.com``.  For example:
+``@DEFAULT_ROOT@``.  For example:
 
     sudo click install --root=/custom/click --all-users foo.click
 
