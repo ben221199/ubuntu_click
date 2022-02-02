@@ -1,3 +1,12 @@
+click (0.5.0-5) unstable; urgency=medium
+
+  * debian/patches:
+    + Add 1004_skip-test-ensure-ownership-quick-if-correct.patch. Skip unit
+      test that started failing with Python 3.10. Issue has been reported
+      upstream.
+
+ -- Mike Gabriel <sunweaver@debian.org>  Wed, 02 Feb 2022 13:28:36 +0100
+
 click (0.5.0-4) unstable; urgency=medium
 
   * d/t/control:
